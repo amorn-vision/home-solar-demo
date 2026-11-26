@@ -1,1749 +1,1753 @@
 {
- "meta": {
-  "title": "บ้าน 3 ชั้น — โมเดลร่างแรก",
-  "version": "0.7.0",
-  "source": "แบบร่างสถาปัตย์ปี 2558 (ผัง + รูปด้าน 4 ด้าน + รูปตัด, บ้านจริงมีการเปลี่ยนแปลงบางส่วน) + ภาพโดรนด้านหน้า + รูปถ่ายจริงรอบบ้าน 5 รูป (ใช้แทนแบบในส่วนที่ต่างกัน)",
-  "units": "meters",
-  "coords": "x = ซ้าย→ขวา (มองจากถนน) จากขอบที่ดินซ้าย, z = หลัง→หน้า จากขอบที่ดินด้านหลัง (ถนนอยู่ด้าน z มาก), y = ความสูงจากระดับถนน ±0.00",
-  "lot": {
-   "width": 20.3,
-   "depth": 10.0
-  }
- },
- "levels": [
-  {
-   "id": 1,
-   "name": "ชั้น 1",
-   "elevation": 0.45,
-   "top": 3.6
+  "meta": {
+    "title": "บ้าน 3 ชั้น — โมเดลร่างแรก",
+    "version": "0.8.0",
+    "source": "แบบร่างสถาปัตย์ปี 2558 (ผัง + รูปด้าน 4 ด้าน + รูปตัด, บ้านจริงมีการเปลี่ยนแปลงบางส่วน) + ภาพโดรนด้านหน้า + รูปถ่ายจริงรอบบ้าน 5 รูป (ใช้แทนแบบในส่วนที่ต่างกัน)",
+    "units": "meters",
+    "coords": "x = ซ้าย→ขวา (มองจากถนน) จากขอบที่ดินซ้าย, z = หลัง→หน้า จากขอบที่ดินด้านหลัง (ถนนอยู่ด้าน z มาก), y = ความสูงจากระดับถนน ±0.00",
+    "lot": {
+      "width": 20.3,
+      "depth": 10.0
+    }
   },
-  {
-   "id": 2,
-   "name": "ชั้น 2",
-   "elevation": 3.6,
-   "top": 6.4
-  },
-  {
-   "id": 3,
-   "name": "ชั้น 3",
-   "elevation": 6.4,
-   "top": 9.2
-  }
- ],
- "roof": {
-  "type": "mono-pitch",
-  "lowY": 9.25,
-  "highY": 9.9,
-  "highSide": "front",
-  "rect": [
-   0.3,
-   1.2,
-   15.15,
-   9.7
+  "levels": [
+    {
+      "id": 1,
+      "name": "ชั้น 1",
+      "elevation": 0.45,
+      "top": 3.6
+    },
+    {
+      "id": 2,
+      "name": "ชั้น 2",
+      "elevation": 3.6,
+      "top": 6.4
+    },
+    {
+      "id": 3,
+      "name": "ชั้น 3",
+      "elevation": 6.4,
+      "top": 9.2
+    }
   ],
-  "clerestory": false,
-  "assumed": true,
-  "frontFascia": {
-   "color": "white",
-   "from": 3.0,
-   "to": 14.45
+  "roof": {
+    "type": "mono-pitch",
+    "lowY": 9.25,
+    "highY": 9.9,
+    "highSide": "front",
+    "rect": [
+      0.3,
+      1.2,
+      15.15,
+      9.7
+    ],
+    "clerestory": false,
+    "assumed": true,
+    "frontFascia": {
+      "color": "white",
+      "from": 3.0,
+      "to": 14.45
+    },
+    "note": "หลังคาหลักทรงเพิงหมาแหงน ขอบตรงหน้า-หลัง มุมซ้ายหน้า (มองจากถนน = ESE ฝั่งถนน) เว้าเข้า (ประมาณจากภาพโดรน/ภาพจำลองผู้ออกแบบ)",
+    "notch": {
+      "corner": "front-left",
+      "width": 0.8,
+      "depth": 1.9,
+      "note": "มุมซ้ายหน้า (ESE ฝั่งถนน) เว้าเข้า ~0.8 × 1.9 ม. ตามรูปหลังคาจริง (ประมาณ)"
+    }
   },
-  "note": "หลังคาหลักตามแบบ + ส่วนยื่นเล็กมุม ESE-หลัง ให้แผง PV3 (ประมาณ)",
-  "steps": [
-   {
-    "fromX": 0.3,
-    "toX": 5.3,
-    "extendBack": 0.6
-   }
-  ]
- },
- "stair": {
-  "rect": [
-   8.25,
-   2.1,
-   10.6,
-   5.1
+  "stair": {
+    "rect": [
+      8.25,
+      2.1,
+      10.6,
+      5.1
+    ],
+    "type": "U"
+  },
+  "rooms": [
+    {
+      "id": "f1-wc",
+      "floor": 1,
+      "name": "น้ำ-ส้วม",
+      "area": 7.01,
+      "kind": "wet",
+      "rect": [
+        1.0,
+        3.1,
+        3.1,
+        6.3
+      ],
+      "elev": 0.35
+    },
+    {
+      "id": "f1-prep",
+      "floor": 1,
+      "name": "เตรียมอาหาร",
+      "area": 10.67,
+      "kind": "room",
+      "rect": [
+        3.1,
+        2.0,
+        6.85,
+        4.85
+      ]
+    },
+    {
+      "id": "f1-multi",
+      "floor": 1,
+      "name": "เอนกประสงค์",
+      "area": 16.98,
+      "kind": "room",
+      "rect": [
+        3.1,
+        4.85,
+        6.85,
+        8.9
+      ]
+    },
+    {
+      "id": "f1-stair",
+      "floor": 1,
+      "name": "โถงบันได",
+      "area": 15.75,
+      "kind": "hall",
+      "rect": [
+        6.85,
+        2.0,
+        10.6,
+        6.1
+      ]
+    },
+    {
+      "id": "f1-dining",
+      "floor": 1,
+      "name": "ทานอาหาร",
+      "area": 10.5,
+      "kind": "room",
+      "rect": [
+        6.85,
+        6.1,
+        10.6,
+        8.9
+      ]
+    },
+    {
+      "id": "f1-living",
+      "floor": 1,
+      "name": "รับแขก",
+      "area": 19.87,
+      "kind": "room",
+      "rect": [
+        10.6,
+        2.0,
+        14.35,
+        7.2
+      ]
+    },
+    {
+      "id": "f1-porch",
+      "floor": 1,
+      "name": "เฉลียง",
+      "area": 6.33,
+      "kind": "porch",
+      "rect": [
+        10.6,
+        7.2,
+        14.35,
+        8.9
+      ],
+      "elev": 0.35
+    },
+    {
+      "id": "f1-carport",
+      "floor": 1,
+      "name": "ที่จอดรถ",
+      "area": 39.41,
+      "kind": "carport",
+      "rect": [
+        14.35,
+        2.8,
+        20.3,
+        9.9
+      ],
+      "elev": 0.2
+    },
+    {
+      "id": "f1-laundry",
+      "floor": 1,
+      "name": "ซักล้าง",
+      "area": 15.4,
+      "kind": "yard",
+      "rect": [
+        3.1,
+        0.0,
+        10.8,
+        2.0
+      ],
+      "elev": 0.35
+    },
+    {
+      "id": "f2-wc",
+      "floor": 2,
+      "name": "น้ำ-ส้วม",
+      "area": 7.01,
+      "kind": "wet",
+      "rect": [
+        1.0,
+        3.1,
+        3.1,
+        6.3
+      ]
+    },
+    {
+      "id": "f2-bed1",
+      "floor": 2,
+      "name": "แต่งตัว + ห้องนอน 1",
+      "area": 24.51,
+      "kind": "room",
+      "rect": [
+        3.1,
+        2.0,
+        6.85,
+        8.9
+      ]
+    },
+    {
+      "id": "f2-bal-back",
+      "floor": 2,
+      "name": "ระเบียง",
+      "area": 1.57,
+      "kind": "balcony",
+      "rect": [
+        3.6,
+        1.4,
+        6.2,
+        2.0
+      ]
+    },
+    {
+      "id": "f2-lounge",
+      "floor": 2,
+      "name": "โถงพักผ่อน",
+      "area": 21.74,
+      "kind": "hall",
+      "rect": [
+        6.85,
+        2.0,
+        10.6,
+        8.9
+      ]
+    },
+    {
+      "id": "f2-bal-front",
+      "floor": 2,
+      "name": "ระเบียง",
+      "area": 3.2,
+      "kind": "balcony",
+      "rect": [
+        6.85,
+        8.9,
+        9.6,
+        9.9
+      ]
+    },
+    {
+      "id": "f2-bed2",
+      "floor": 2,
+      "name": "ห้องนอน 2",
+      "area": 25.21,
+      "kind": "room",
+      "rect": [
+        10.6,
+        2.0,
+        14.35,
+        8.9
+      ]
+    },
+    {
+      "id": "f2-wc2",
+      "floor": 2,
+      "name": "น้ำ-ส้วม (ห้องนอน 2)",
+      "area": 5.88,
+      "kind": "wet",
+      "rect": [
+        14.35,
+        2.0,
+        17.35,
+        3.96
+      ]
+    },
+    {
+      "id": "f2-dress2",
+      "floor": 2,
+      "name": "แต่งตัว (ห้องนอน 2)",
+      "area": null,
+      "kind": "room",
+      "rect": [
+        14.35,
+        3.96,
+        17.35,
+        8.1
+      ]
+    },
+    {
+      "id": "f2-bal-right",
+      "floor": 2,
+      "name": "ระเบียง",
+      "area": 2.32,
+      "kind": "balcony",
+      "rect": [
+        14.35,
+        8.1,
+        17.35,
+        8.9
+      ]
+    },
+    {
+      "id": "f3-wc",
+      "floor": 3,
+      "name": "น้ำ-ส้วม",
+      "area": 7.01,
+      "kind": "wet",
+      "rect": [
+        1.0,
+        3.1,
+        3.1,
+        6.3
+      ]
+    },
+    {
+      "id": "f3-master",
+      "floor": 3,
+      "name": "ห้องนอนใหญ่ (มีโซนแต่งตัว)",
+      "area": 49.91,
+      "kind": "room",
+      "rect": [
+        3.1,
+        2.0,
+        8.25,
+        8.9
+      ]
+    },
+    {
+      "id": "f3-stair",
+      "floor": 3,
+      "name": "โถงบันได + ห้องพระ",
+      "area": 14.8,
+      "kind": "hall",
+      "rect": [
+        8.25,
+        2.0,
+        10.6,
+        8.9
+      ]
+    },
+    {
+      "id": "f3-lounge",
+      "floor": 3,
+      "name": "พักผ่อน",
+      "area": null,
+      "kind": "room",
+      "rect": [
+        10.6,
+        2.0,
+        14.35,
+        8.9
+      ]
+    },
+    {
+      "id": "f3-work",
+      "floor": 3,
+      "name": "ทำงาน",
+      "area": null,
+      "kind": "room",
+      "rect": [
+        14.35,
+        2.0,
+        17.35,
+        5.2
+      ]
+    },
+    {
+      "id": "f3-terrace",
+      "floor": 3,
+      "name": "ระเบียง",
+      "area": 11.14,
+      "kind": "balcony",
+      "rect": [
+        14.35,
+        5.2,
+        17.35,
+        8.9
+      ]
+    }
   ],
-  "type": "U"
- },
- "rooms": [
-  {
-   "id": "f1-wc",
-   "floor": 1,
-   "name": "น้ำ-ส้วม",
-   "area": 7.01,
-   "kind": "wet",
-   "rect": [
-    1.0,
-    3.1,
-    3.1,
-    6.3
-   ],
-   "elev": 0.35
-  },
-  {
-   "id": "f1-prep",
-   "floor": 1,
-   "name": "เตรียมอาหาร",
-   "area": 10.67,
-   "kind": "room",
-   "rect": [
-    3.1,
-    2.0,
-    6.85,
-    4.85
-   ]
-  },
-  {
-   "id": "f1-multi",
-   "floor": 1,
-   "name": "เอนกประสงค์",
-   "area": 16.98,
-   "kind": "room",
-   "rect": [
-    3.1,
-    4.85,
-    6.85,
-    8.9
-   ]
-  },
-  {
-   "id": "f1-stair",
-   "floor": 1,
-   "name": "โถงบันได",
-   "area": 15.75,
-   "kind": "hall",
-   "rect": [
-    6.85,
-    2.0,
-    10.6,
-    6.1
-   ]
-  },
-  {
-   "id": "f1-dining",
-   "floor": 1,
-   "name": "ทานอาหาร",
-   "area": 10.5,
-   "kind": "room",
-   "rect": [
-    6.85,
-    6.1,
-    10.6,
-    8.9
-   ]
-  },
-  {
-   "id": "f1-living",
-   "floor": 1,
-   "name": "รับแขก",
-   "area": 19.87,
-   "kind": "room",
-   "rect": [
-    10.6,
-    2.0,
-    14.35,
-    7.2
-   ]
-  },
-  {
-   "id": "f1-porch",
-   "floor": 1,
-   "name": "เฉลียง",
-   "area": 6.33,
-   "kind": "porch",
-   "rect": [
-    10.6,
-    7.2,
-    14.35,
-    8.9
-   ],
-   "elev": 0.35
-  },
-  {
-   "id": "f1-carport",
-   "floor": 1,
-   "name": "ที่จอดรถ",
-   "area": 39.41,
-   "kind": "carport",
-   "rect": [
-    14.35,
-    2.8,
-    20.3,
-    9.9
-   ],
-   "elev": 0.2
-  },
-  {
-   "id": "f1-laundry",
-   "floor": 1,
-   "name": "ซักล้าง",
-   "area": 15.4,
-   "kind": "yard",
-   "rect": [
-    3.1,
-    0.0,
-    10.8,
-    2.0
-   ],
-   "elev": 0.35
-  },
-  {
-   "id": "f2-wc",
-   "floor": 2,
-   "name": "น้ำ-ส้วม",
-   "area": 7.01,
-   "kind": "wet",
-   "rect": [
-    1.0,
-    3.1,
-    3.1,
-    6.3
-   ]
-  },
-  {
-   "id": "f2-bed1",
-   "floor": 2,
-   "name": "แต่งตัว + ห้องนอน 1",
-   "area": 24.51,
-   "kind": "room",
-   "rect": [
-    3.1,
-    2.0,
-    6.85,
-    8.9
-   ]
-  },
-  {
-   "id": "f2-bal-back",
-   "floor": 2,
-   "name": "ระเบียง",
-   "area": 1.57,
-   "kind": "balcony",
-   "rect": [
-    3.6,
-    1.4,
-    6.2,
-    2.0
-   ]
-  },
-  {
-   "id": "f2-lounge",
-   "floor": 2,
-   "name": "โถงพักผ่อน",
-   "area": 21.74,
-   "kind": "hall",
-   "rect": [
-    6.85,
-    2.0,
-    10.6,
-    8.9
-   ]
-  },
-  {
-   "id": "f2-bal-front",
-   "floor": 2,
-   "name": "ระเบียง",
-   "area": 3.2,
-   "kind": "balcony",
-   "rect": [
-    6.85,
-    8.9,
-    9.6,
-    9.9
-   ]
-  },
-  {
-   "id": "f2-bed2",
-   "floor": 2,
-   "name": "ห้องนอน 2",
-   "area": 25.21,
-   "kind": "room",
-   "rect": [
-    10.6,
-    2.0,
-    14.35,
-    8.9
-   ]
-  },
-  {
-   "id": "f2-wc2",
-   "floor": 2,
-   "name": "น้ำ-ส้วม (ห้องนอน 2)",
-   "area": 5.88,
-   "kind": "wet",
-   "rect": [
-    14.35,
-    2.0,
-    17.35,
-    3.96
-   ]
-  },
-  {
-   "id": "f2-dress2",
-   "floor": 2,
-   "name": "แต่งตัว (ห้องนอน 2)",
-   "area": null,
-   "kind": "room",
-   "rect": [
-    14.35,
-    3.96,
-    17.35,
-    8.1
-   ]
-  },
-  {
-   "id": "f2-bal-right",
-   "floor": 2,
-   "name": "ระเบียง",
-   "area": 2.32,
-   "kind": "balcony",
-   "rect": [
-    14.35,
-    8.1,
-    17.35,
-    8.9
-   ]
-  },
-  {
-   "id": "f3-wc",
-   "floor": 3,
-   "name": "น้ำ-ส้วม",
-   "area": 7.01,
-   "kind": "wet",
-   "rect": [
-    1.0,
-    3.1,
-    3.1,
-    6.3
-   ]
-  },
-  {
-   "id": "f3-master",
-   "floor": 3,
-   "name": "ห้องนอนใหญ่ (มีโซนแต่งตัว)",
-   "area": 49.91,
-   "kind": "room",
-   "rect": [
-    3.1,
-    2.0,
-    8.25,
-    8.9
-   ]
-  },
-  {
-   "id": "f3-stair",
-   "floor": 3,
-   "name": "โถงบันได + ห้องพระ",
-   "area": 14.8,
-   "kind": "hall",
-   "rect": [
-    8.25,
-    2.0,
-    10.6,
-    8.9
-   ]
-  },
-  {
-   "id": "f3-lounge",
-   "floor": 3,
-   "name": "พักผ่อน",
-   "area": null,
-   "kind": "room",
-   "rect": [
-    10.6,
-    2.0,
-    14.35,
-    8.9
-   ]
-  },
-  {
-   "id": "f3-work",
-   "floor": 3,
-   "name": "ทำงาน",
-   "area": null,
-   "kind": "room",
-   "rect": [
-    14.35,
-    2.0,
-    17.35,
-    5.2
-   ]
-  },
-  {
-   "id": "f3-terrace",
-   "floor": 3,
-   "name": "ระเบียง",
-   "area": 11.14,
-   "kind": "balcony",
-   "rect": [
-    14.35,
-    5.2,
-    17.35,
-    8.9
-   ]
-  }
- ],
- "solar": {
-  "count": 34,
-  "kWp": 20.8,
-  "approximate": true,
-  "layout": "ตามภาพจำลองก่อนติดตั้ง: แผงแนวนอน 3 กลุ่ม × 2 คอลัมน์ — PV3 (ฝั่ง ESE, 2×5 ยื่นไปด้านหลัง 1 แถว) | PV2 (กลาง 2×6) | PV1 AIKO (ฝั่ง WNW/โรงจอดรถ 2×6) — ตำแหน่งโดยประมาณ",
-  "panel": {
-   "w": 1.134,
-   "h": 2.278
-  },
-  "panelGap": 0.02,
-  "blockGap": 0.25,
-  "centerX": 7.725,
-  "strings": [
-   {
-    "id": "PV3",
-    "label": "PV3 · Jinko 580W × 10",
-    "brand": "Jinko",
-    "watt": 580,
-    "count": 10,
-    "orientation": "landscape",
-    "cols": 2,
-    "rows": 5,
+  "solar": {
+    "count": 34,
+    "kWp": 20.8,
+    "approximate": true,
+    "layout": "ตามภาพจำลองก่อนติดตั้ง: แผงแนวนอน 3 กลุ่ม × 2 คอลัมน์ — PV3 (ฝั่ง ESE 10 แผง: คอลัมน์นอกถอยหลังหลบมุมเว้า) | PV2 (กลาง 2×6) | PV1 AIKO (ฝั่ง WNW/โรงจอดรถ 2×6) — ตำแหน่งโดยประมาณ",
     "panel": {
-     "w": 1.134,
-     "h": 2.278
+      "w": 1.134,
+      "h": 2.278
     },
-    "style": "jinko-black",
-    "offset": -1.725
-   },
-   {
-    "id": "PV2",
-    "label": "PV2 · Jinko 580W × 12",
-    "brand": "Jinko",
-    "watt": 580,
-    "count": 12,
-    "orientation": "landscape",
-    "cols": 2,
-    "rows": 6,
-    "panel": {
-     "w": 1.134,
-     "h": 2.278
+    "panelGap": 0.02,
+    "blockGap": 0.25,
+    "centerX": 7.725,
+    "strings": [
+      {
+        "id": "PV3",
+        "label": "PV3 · Jinko 580W × 10",
+        "brand": "Jinko",
+        "watt": 580,
+        "count": 10,
+        "orientation": "landscape",
+        "cols": 2,
+        "rows": 5,
+        "panel": {
+          "w": 1.134,
+          "h": 2.278
+        },
+        "style": "jinko-black",
+        "offset": 0,
+        "colOffsets": [
+          -0.577,
+          0.577
+        ],
+        "note": "คอลัมน์นอก (ESE) เริ่มหลังรอยเว้า ชิดแนวหลัง; คอลัมน์ใน ชิดแนวหน้า (เหลื่อม 1 แถว)"
+      },
+      {
+        "id": "PV2",
+        "label": "PV2 · Jinko 580W × 12",
+        "brand": "Jinko",
+        "watt": 580,
+        "count": 12,
+        "orientation": "landscape",
+        "cols": 2,
+        "rows": 6,
+        "panel": {
+          "w": 1.134,
+          "h": 2.278
+        },
+        "style": "jinko-black",
+        "offset": 0
+      },
+      {
+        "id": "PV1",
+        "label": "PV1 · AIKO 670W × 12",
+        "brand": "AIKO",
+        "watt": 670,
+        "count": 12,
+        "orientation": "landscape",
+        "cols": 2,
+        "rows": 6,
+        "panel": {
+          "w": 1.134,
+          "h": 2.382
+        },
+        "style": "aiko",
+        "offset": 0
+      }
+    ]
+  },
+  "hotspots": [
+    {
+      "id": "hs-inverter",
+      "type": "inverter",
+      "label": "อินเวอร์เตอร์ Sigenergy",
+      "floor": 1,
+      "pos": [
+        14.48,
+        1.6,
+        4.2
+      ],
+      "placeholder": true
     },
-    "style": "jinko-black",
-    "offset": 0
-   },
-   {
-    "id": "PV1",
-    "label": "PV1 · AIKO 670W × 12",
-    "brand": "AIKO",
-    "watt": 670,
-    "count": 12,
-    "orientation": "landscape",
-    "cols": 2,
-    "rows": 6,
-    "panel": {
-     "w": 1.134,
-     "h": 2.382
+    {
+      "id": "hs-battery",
+      "type": "battery",
+      "label": "แบตเตอรี่ (2 ก้อน)",
+      "floor": 1,
+      "pos": [
+        14.48,
+        0.8,
+        4.2
+      ],
+      "placeholder": true
     },
-    "style": "aiko",
-    "offset": 0
-   }
-  ]
- },
- "hotspots": [
-  {
-   "id": "hs-inverter",
-   "type": "inverter",
-   "label": "อินเวอร์เตอร์ Sigenergy",
-   "floor": 1,
-   "pos": [
-    14.48,
-    1.6,
-    4.2
-   ],
-   "placeholder": true
+    {
+      "id": "hs-gateway",
+      "type": "gateway",
+      "label": "Sigen Gateway",
+      "floor": 1,
+      "pos": [
+        14.48,
+        1.6,
+        5.4
+      ],
+      "placeholder": true
+    },
+    {
+      "id": "hs-ev",
+      "type": "ev_charger",
+      "label": "ที่ชาร์จรถ EV",
+      "floor": 1,
+      "pos": [
+        14.48,
+        1.3,
+        6.8
+      ],
+      "placeholder": true
+    },
+    {
+      "id": "hs-router",
+      "type": "router",
+      "label": "เราเตอร์ / อินเทอร์เน็ต",
+      "floor": 1,
+      "pos": [
+        12.5,
+        1.2,
+        2.3
+      ],
+      "placeholder": true
+    },
+    {
+      "id": "hs-ap2",
+      "type": "wifi_ap",
+      "label": "จุดกระจาย Wi-Fi ชั้น 2",
+      "floor": 2,
+      "pos": [
+        8.0,
+        6.1,
+        6.0
+      ],
+      "placeholder": true
+    },
+    {
+      "id": "hs-cam-front",
+      "type": "camera",
+      "label": "กล้อง CCTV หน้าบ้าน",
+      "floor": 1,
+      "pos": [
+        20.1,
+        3.1,
+        9.8
+      ],
+      "placeholder": true
+    },
+    {
+      "id": "hs-cam-back",
+      "type": "camera",
+      "label": "กล้อง CCTV หลังบ้าน",
+      "floor": 1,
+      "pos": [
+        3.3,
+        2.9,
+        0.15
+      ],
+      "placeholder": true
+    },
+    {
+      "id": "hs-smarthome",
+      "type": "smarthome_gateway",
+      "label": "Gateway สมาร์ทโฮม",
+      "floor": 1,
+      "pos": [
+        9.0,
+        1.2,
+        6.3
+      ],
+      "placeholder": true
+    },
+    {
+      "id": "hs-cam-spirit",
+      "type": "camera",
+      "label": "กล้อง CCTV ข้างศาลพระภูมิ",
+      "floor": 1,
+      "pos": [
+        19.95,
+        2.7,
+        2.7
+      ],
+      "placeholder": true,
+      "note": "ประมาณจากรูปถ่าย"
+    }
+  ],
+  "palette": {
+    "white": "#ffffff",
+    "accent": "#8e9aab",
+    "slate": "#5f6b7a",
+    "louver": "#8a9099",
+    "wood": "#b5573a",
+    "stone": "#6a6760",
+    "dark": "#555555",
+    "metal": "#1f2224",
+    "glass": "#9fd8a8",
+    "plinth": "#9b9b98",
+    "roofUnder": "#d4d6d8",
+    "voidSlate": "#4f5a66",
+    "roofFascia": "#f4f4f2",
+    "roofTop": "#e3e5e6",
+    "metalRoof": "#8d9196",
+    "wall": "#e9ecec",
+    "stairWood": "#8a5a36",
+    "bronze": "#8b5a2b",
+    "canopy": "#2a2d30",
+    "concrete": "#a3a5a6"
   },
-  {
-   "id": "hs-battery",
-   "type": "battery",
-   "label": "แบตเตอรี่ (2 ก้อน)",
-   "floor": 1,
-   "pos": [
-    14.48,
-    0.8,
-    4.2
-   ],
-   "placeholder": true
+  "facade": {
+    "note": "ตำแหน่งประตู/หน้าต่างและวัสดุตามรูปด้าน (ประมาณ)",
+    "openings": [
+      {
+        "id": "f1-front-multi",
+        "floor": 1,
+        "wall": {
+          "z": 8.9
+        },
+        "from": 3.4,
+        "to": 6.55,
+        "sill": 0.3,
+        "head": 2.55,
+        "type": "window",
+        "panes": 4
+      },
+      {
+        "id": "f1-front-dining",
+        "floor": 1,
+        "wall": {
+          "z": 8.9
+        },
+        "from": 7.1,
+        "to": 10.3,
+        "sill": 0.3,
+        "head": 2.55,
+        "type": "window",
+        "panes": 4
+      },
+      {
+        "id": "f1-entrance",
+        "floor": 1,
+        "wall": {
+          "z": 7.2
+        },
+        "from": 11.0,
+        "to": 13.95,
+        "sill": 0.0,
+        "head": 2.4,
+        "type": "door",
+        "panes": 4
+      },
+      {
+        "id": "f2-front-bed1",
+        "floor": 2,
+        "wall": {
+          "z": 8.9
+        },
+        "from": 3.5,
+        "to": 6.45,
+        "sill": 0.5,
+        "head": 2.3,
+        "type": "window",
+        "panes": 4
+      },
+      {
+        "id": "f2-front-balcony-door",
+        "floor": 2,
+        "wall": {
+          "z": 8.9
+        },
+        "from": 7.3,
+        "to": 9.1,
+        "sill": 0.0,
+        "head": 2.3,
+        "type": "door",
+        "panes": 2
+      },
+      {
+        "id": "f2-front-bed2",
+        "floor": 2,
+        "wall": {
+          "z": 8.9
+        },
+        "from": 11.05,
+        "to": 13.9,
+        "sill": 0.5,
+        "head": 2.3,
+        "type": "window",
+        "panes": 4,
+        "frameColor": "metal"
+      },
+      {
+        "id": "f2-front-slider",
+        "floor": 2,
+        "wall": {
+          "z": 8.1
+        },
+        "from": 14.6,
+        "to": 16.4,
+        "sill": 0.0,
+        "head": 2.3,
+        "type": "door",
+        "panes": 2
+      },
+      {
+        "id": "f3-front-master",
+        "floor": 3,
+        "wall": {
+          "z": 8.9
+        },
+        "from": 3.6,
+        "to": 6.4,
+        "sill": 0.2,
+        "head": 2.6,
+        "type": "window",
+        "panes": 4
+      },
+      {
+        "id": "f3-front-lounge",
+        "floor": 3,
+        "wall": {
+          "z": 8.9
+        },
+        "from": 11.1,
+        "to": 13.85,
+        "sill": 0.2,
+        "head": 2.6,
+        "type": "window",
+        "panes": 4
+      },
+      {
+        "id": "f3-terrace-door",
+        "floor": 3,
+        "wall": {
+          "x": 14.35
+        },
+        "from": 6.0,
+        "to": 8.4,
+        "sill": 0.0,
+        "head": 2.4,
+        "type": "door",
+        "panes": 2
+      },
+      {
+        "id": "f1-wc-square",
+        "floor": 1,
+        "wall": {
+          "z": 6.3
+        },
+        "from": 1.75,
+        "to": 2.35,
+        "sill": 1.4,
+        "head": 2.0,
+        "type": "window",
+        "panes": 1,
+        "deepFrame": true
+      },
+      {
+        "id": "f2-wc-square",
+        "floor": 2,
+        "wall": {
+          "z": 6.3
+        },
+        "from": 1.75,
+        "to": 2.35,
+        "sill": 1.4,
+        "head": 2.0,
+        "type": "window",
+        "panes": 1,
+        "deepFrame": true
+      },
+      {
+        "id": "f3-wc-square",
+        "floor": 3,
+        "wall": {
+          "z": 6.3
+        },
+        "from": 1.75,
+        "to": 2.35,
+        "sill": 1.4,
+        "head": 2.0,
+        "type": "window",
+        "panes": 1,
+        "deepFrame": true
+      },
+      {
+        "id": "f1-left-square",
+        "floor": 1,
+        "wall": {
+          "x": 3.1
+        },
+        "from": 7.3,
+        "to": 7.9,
+        "sill": 1.2,
+        "head": 1.8,
+        "type": "window",
+        "panes": 1,
+        "deepFrame": true
+      },
+      {
+        "id": "f3-left-narrow-back",
+        "floor": 3,
+        "wall": {
+          "x": 3.1
+        },
+        "from": 2.35,
+        "to": 2.85,
+        "sill": 0.3,
+        "head": 2.5,
+        "type": "window",
+        "panes": 1,
+        "deepFrame": true
+      },
+      {
+        "id": "f3-left-narrow-front",
+        "floor": 3,
+        "wall": {
+          "x": 3.1
+        },
+        "from": 8.05,
+        "to": 8.55,
+        "sill": 0.3,
+        "head": 2.5,
+        "type": "window",
+        "panes": 1,
+        "deepFrame": true
+      },
+      {
+        "id": "f1-right-door",
+        "floor": 1,
+        "wall": {
+          "x": 14.35
+        },
+        "from": 5.2,
+        "to": 6.2,
+        "sill": 0.0,
+        "head": 2.4,
+        "type": "door",
+        "panes": 1
+      },
+      {
+        "id": "f2-right-square",
+        "floor": 2,
+        "wall": {
+          "x": 17.35
+        },
+        "from": 2.7,
+        "to": 3.3,
+        "sill": 1.3,
+        "head": 1.9,
+        "type": "window",
+        "panes": 1,
+        "deepFrame": true
+      },
+      {
+        "id": "f3-right-work",
+        "floor": 3,
+        "wall": {
+          "x": 17.35
+        },
+        "from": 2.3,
+        "to": 5.0,
+        "sill": 0.6,
+        "head": 2.4,
+        "type": "window",
+        "panes": 3
+      },
+      {
+        "id": "f1-back-door",
+        "floor": 1,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 3.5,
+        "to": 4.4,
+        "sill": 0.0,
+        "head": 2.2,
+        "type": "door",
+        "panes": 1
+      },
+      {
+        "id": "f1-back-kitchen",
+        "floor": 1,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 4.9,
+        "to": 6.3,
+        "sill": 1.0,
+        "head": 2.1,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f1-back-stair",
+        "floor": 1,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 7.0,
+        "to": 8.0,
+        "sill": 1.0,
+        "head": 2.1,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f1-back-living",
+        "floor": 1,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 11.8,
+        "to": 13.2,
+        "sill": 1.0,
+        "head": 2.1,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f2-back-balcony-door",
+        "floor": 2,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 4.0,
+        "to": 5.0,
+        "sill": 0.0,
+        "head": 2.3,
+        "type": "door",
+        "panes": 1
+      },
+      {
+        "id": "f2-back-lounge",
+        "floor": 2,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 7.1,
+        "to": 8.1,
+        "sill": 1.0,
+        "head": 2.1,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f2-back-bed2",
+        "floor": 2,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 11.8,
+        "to": 13.2,
+        "sill": 1.0,
+        "head": 2.1,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f3-back-master-1",
+        "floor": 3,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 3.9,
+        "to": 5.3,
+        "sill": 1.0,
+        "head": 2.2,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f3-back-master-2",
+        "floor": 3,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 6.3,
+        "to": 7.7,
+        "sill": 1.0,
+        "head": 2.2,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f3-back-stair",
+        "floor": 3,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 8.8,
+        "to": 10.0,
+        "sill": 1.0,
+        "head": 2.2,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f3-back-lounge",
+        "floor": 3,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 11.8,
+        "to": 13.2,
+        "sill": 1.0,
+        "head": 2.1,
+        "type": "window",
+        "panes": 2
+      },
+      {
+        "id": "f3-back-work",
+        "floor": 3,
+        "wall": {
+          "z": 2.0
+        },
+        "from": 15.2,
+        "to": 16.4,
+        "sill": 1.0,
+        "head": 2.2,
+        "type": "window",
+        "panes": 2
+      }
+    ],
+    "features": [
+      {
+        "type": "frame",
+        "plane": "z",
+        "c": 8.9,
+        "out": 1,
+        "a0": 3.1,
+        "a1": 10.6,
+        "y0": 0.5,
+        "y1": 3.4,
+        "depth": 0.45,
+        "t": 0.22,
+        "color": "white",
+        "note": "กรอบยื่นชั้น 1"
+      },
+      {
+        "type": "frame",
+        "plane": "z",
+        "c": 8.9,
+        "out": 1,
+        "a0": 3.1,
+        "a1": 6.85,
+        "y0": 3.6,
+        "y1": 6.2,
+        "depth": 0.3,
+        "t": 0.18,
+        "color": "white"
+      },
+      {
+        "type": "frame",
+        "plane": "z",
+        "c": 8.9,
+        "out": 1,
+        "a0": 10.7,
+        "a1": 14.25,
+        "y0": 3.75,
+        "y1": 6.2,
+        "depth": 0.45,
+        "t": 0.2,
+        "color": "white",
+        "outline": "accent"
+      },
+      {
+        "type": "louver",
+        "plane": "z",
+        "c": 8.9,
+        "out": 1,
+        "a0": 3.5,
+        "a1": 6.5,
+        "y0": 6.5,
+        "y1": 9.1,
+        "color": "louver"
+      },
+      {
+        "type": "louver",
+        "plane": "z",
+        "c": 8.9,
+        "out": 1,
+        "a0": 11.0,
+        "a1": 13.95,
+        "y0": 6.5,
+        "y1": 9.1,
+        "color": "louver"
+      },
+      {
+        "type": "panel",
+        "color": "stone",
+        "box": [
+          13.95,
+          0.35,
+          8.45,
+          14.5,
+          3.45,
+          9.0
+        ],
+        "note": "เสาหินทางเข้า"
+      },
+      {
+        "type": "panel",
+        "color": "stone",
+        "box": [
+          14.45,
+          0.45,
+          6.4,
+          14.52,
+          3.45,
+          7.2
+        ]
+      },
+      {
+        "type": "slats",
+        "plane": "z",
+        "c": 8.85,
+        "a0": 16.45,
+        "a1": 17.3,
+        "y0": 3.6,
+        "y1": 6.3,
+        "spacing": 0.14,
+        "w": 0.05,
+        "depth": 0.08,
+        "color": "wood"
+      },
+      {
+        "type": "pergola",
+        "box": [
+          14.35,
+          9.1,
+          5.2,
+          17.4,
+          9.25,
+          8.95
+        ],
+        "dir": "x",
+        "spacing": 0.5,
+        "color": "dark"
+      },
+      {
+        "type": "panel",
+        "color": "accent",
+        "box": [
+          0.9,
+          0.45,
+          6.4,
+          1.2,
+          9.2,
+          6.46
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "white",
+        "box": [
+          1.0,
+          3.25,
+          2.25,
+          3.1,
+          3.35,
+          3.1
+        ],
+        "note": "กันสาดด้านซ้าย +3.3"
+      },
+      {
+        "type": "panel",
+        "color": "dark",
+        "box": [
+          1.0,
+          3.22,
+          2.22,
+          3.1,
+          3.25,
+          2.28
+        ]
+      },
+      {
+        "type": "slats",
+        "plane": "x",
+        "c": 17.48,
+        "a0": 2.2,
+        "a1": 3.1,
+        "y0": 6.55,
+        "y1": 9.1,
+        "spacing": 0.13,
+        "w": 0.05,
+        "depth": 0.08,
+        "color": "wood"
+      },
+      {
+        "type": "slats",
+        "plane": "x",
+        "c": 17.48,
+        "a0": 3.2,
+        "a1": 4.1,
+        "y0": 6.55,
+        "y1": 9.1,
+        "spacing": 0.13,
+        "w": 0.05,
+        "depth": 0.08,
+        "color": "wood"
+      },
+      {
+        "type": "slats",
+        "plane": "x",
+        "c": 17.48,
+        "a0": 4.2,
+        "a1": 5.1,
+        "y0": 6.55,
+        "y1": 9.1,
+        "spacing": 0.13,
+        "w": 0.05,
+        "depth": 0.08,
+        "color": "wood"
+      },
+      {
+        "type": "panel",
+        "color": "accent",
+        "box": [
+          14.45,
+          3.75,
+          1.84,
+          17.25,
+          6.25,
+          1.9
+        ]
+      },
+      {
+        "type": "slats",
+        "plane": "z",
+        "c": 1.42,
+        "a0": 5.15,
+        "a1": 6.2,
+        "y0": 3.6,
+        "y1": 6.3,
+        "spacing": 0.14,
+        "w": 0.05,
+        "depth": 0.08,
+        "color": "wood"
+      },
+      {
+        "type": "slab",
+        "box": [
+          14.3,
+          9.2,
+          1.7,
+          17.65,
+          9.32,
+          5.3
+        ],
+        "color": "roofUnder",
+        "edge": "dark",
+        "group": "roof"
+      },
+      {
+        "type": "panel",
+        "color": "accent",
+        "box": [
+          3.1,
+          0.3,
+          8.9,
+          10.6,
+          0.5,
+          9.38
+        ],
+        "note": "ฐานกรอบชั้น 1"
+      },
+      {
+        "type": "panel",
+        "color": "white",
+        "box": [
+          10.8,
+          3.08,
+          7.2,
+          14.15,
+          3.16,
+          8.55
+        ],
+        "note": "กันสาดทางเข้า"
+      },
+      {
+        "type": "panel",
+        "color": "voidSlate",
+        "box": [
+          7.0,
+          5.9,
+          9.06,
+          9.4,
+          9.2,
+          9.1
+        ],
+        "note": "ช่องโถงกลาง (สีเทาเข้ม)"
+      },
+      {
+        "type": "panel",
+        "color": "voidSlate",
+        "box": [
+          7.0,
+          3.6,
+          9.06,
+          7.3,
+          5.9,
+          9.1
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "voidSlate",
+        "box": [
+          9.1,
+          3.6,
+          9.06,
+          9.4,
+          5.9,
+          9.1
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "voidSlate",
+        "box": [
+          6.92,
+          3.6,
+          8.9,
+          7.0,
+          9.2,
+          9.55
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "voidSlate",
+        "box": [
+          9.4,
+          3.6,
+          8.9,
+          9.48,
+          9.2,
+          9.55
+        ]
+      },
+      {
+        "type": "frame",
+        "plane": "z",
+        "c": 8.9,
+        "out": 1,
+        "a0": 3.3,
+        "a1": 6.7,
+        "y0": 6.4,
+        "y1": 9.2,
+        "depth": 0.36,
+        "t": 0.2,
+        "color": "white",
+        "outline": "accent"
+      },
+      {
+        "type": "frame",
+        "plane": "z",
+        "c": 8.9,
+        "out": 1,
+        "a0": 10.8,
+        "a1": 14.15,
+        "y0": 6.4,
+        "y1": 9.2,
+        "depth": 0.36,
+        "t": 0.2,
+        "color": "white",
+        "outline": "accent"
+      },
+      {
+        "type": "panel",
+        "color": "accent",
+        "box": [
+          2.94,
+          0.45,
+          8.55,
+          3.0,
+          9.2,
+          9.0
+        ],
+        "note": "แถบมุมซ้าย"
+      },
+      {
+        "type": "panel",
+        "color": "accent",
+        "box": [
+          0.84,
+          0.45,
+          6.1,
+          0.9,
+          9.2,
+          6.4
+        ]
+      },
+      {
+        "type": "slats",
+        "plane": "z",
+        "c": 9.25,
+        "a0": 8.25,
+        "a1": 9.4,
+        "y0": 3.6,
+        "y1": 9.2,
+        "spacing": 0.16,
+        "w": 0.05,
+        "depth": 0.3,
+        "color": "metal",
+        "note": "ครีบระแนงสีเข้ม (จากรูปถ่าย)"
+      },
+      {
+        "type": "panel",
+        "color": "accent",
+        "box": [
+          10.7,
+          3.5,
+          8.9,
+          14.25,
+          3.62,
+          9.55
+        ],
+        "note": "กันสาดเทาฟ้าใต้กรอบชั้น 2"
+      },
+      {
+        "type": "panel",
+        "color": "bronzeGlass",
+        "box": [
+          14.35,
+          9.27,
+          5.2,
+          17.4,
+          9.3,
+          8.95
+        ],
+        "note": "หลังคาเพอร์โกล่าโปร่งแสงสีบรอนซ์"
+      },
+      {
+        "type": "pergola",
+        "box": [
+          17.35,
+          3.25,
+          2.8,
+          20.3,
+          3.4,
+          9.95
+        ],
+        "dir": "x",
+        "spacing": 1.0,
+        "color": "metal",
+        "note": "หลังคาโรงจอดรถโครงเหล็กดำ"
+      },
+      {
+        "type": "panel",
+        "color": "tintGlass",
+        "box": [
+          17.4,
+          3.36,
+          2.85,
+          20.25,
+          3.39,
+          9.9
+        ]
+      },
+      {
+        "type": "pergola",
+        "box": [
+          14.35,
+          3.25,
+          8.95,
+          17.35,
+          3.4,
+          9.95
+        ],
+        "dir": "z",
+        "spacing": 1.0,
+        "color": "metal"
+      },
+      {
+        "type": "panel",
+        "color": "tintGlass",
+        "box": [
+          14.4,
+          3.36,
+          9.0,
+          17.3,
+          3.39,
+          9.9
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "metal",
+        "box": [
+          20.05,
+          0,
+          9.7,
+          20.2,
+          3.3,
+          9.85
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "metal",
+        "box": [
+          20.05,
+          0,
+          2.85,
+          20.2,
+          3.3,
+          3.0
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "metal",
+        "box": [
+          14.45,
+          0,
+          9.7,
+          14.6,
+          3.3,
+          9.85
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "concrete",
+        "box": [
+          13.85,
+          0,
+          9.7,
+          14.3,
+          2.0,
+          10.0
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "concrete",
+        "box": [
+          20.0,
+          0,
+          9.7,
+          20.3,
+          2.0,
+          10.0
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "concrete",
+        "box": [
+          0.12,
+          0,
+          9.7,
+          0.45,
+          1.9,
+          10.0
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "concrete",
+        "box": [
+          1.55,
+          0,
+          9.7,
+          1.85,
+          1.9,
+          10.0
+        ]
+      },
+      {
+        "type": "hslats",
+        "plane": "z",
+        "c": 9.88,
+        "a0": 14.3,
+        "a1": 20.0,
+        "y0": 0.05,
+        "y1": 1.8,
+        "spacing": 0.12,
+        "h": 0.07,
+        "color": "metal",
+        "note": "ประตูรั้วบานเลื่อนระแนงดำ"
+      },
+      {
+        "type": "hslats",
+        "plane": "z",
+        "c": 9.88,
+        "a0": 0.45,
+        "a1": 1.55,
+        "y0": 0.05,
+        "y1": 1.8,
+        "spacing": 0.12,
+        "h": 0.07,
+        "color": "metal",
+        "note": "ประตูคนเดิน"
+      },
+      {
+        "type": "hslats",
+        "plane": "z",
+        "c": 9.95,
+        "a0": 1.85,
+        "a1": 13.85,
+        "y0": 0.45,
+        "y1": 1.6,
+        "spacing": 0.14,
+        "h": 0.07,
+        "color": "metal",
+        "note": "รั้วระแนงดำ (ประมาณ)"
+      },
+      {
+        "type": "panel",
+        "color": "concrete",
+        "box": [
+          1.85,
+          0,
+          9.8,
+          13.85,
+          0.45,
+          10.0
+        ]
+      },
+      {
+        "type": "panel",
+        "color": "concrete",
+        "box": [
+          1.9,
+          0,
+          9.2,
+          6.8,
+          0.4,
+          9.75
+        ],
+        "note": "กระบะต้นไม้"
+      },
+      {
+        "type": "shrubs",
+        "y": 0.35,
+        "points": [
+          [
+            2.4,
+            9.5,
+            0.35
+          ],
+          [
+            3.2,
+            9.45,
+            0.4
+          ],
+          [
+            4.1,
+            9.5,
+            0.35
+          ],
+          [
+            5.0,
+            9.45,
+            0.4
+          ],
+          [
+            5.9,
+            9.5,
+            0.35
+          ],
+          [
+            6.5,
+            9.45,
+            0.3
+          ]
+        ]
+      },
+      {
+        "type": "spirit",
+        "x": 19.55,
+        "z": 2.3
+      },
+      {
+        "type": "leanto",
+        "x0": 3.1,
+        "x1": 10.8,
+        "zHigh": 1.95,
+        "zLow": 0.15,
+        "yHigh": 3.2,
+        "yLow": 2.6,
+        "color": "roofTop",
+        "posts": [
+          3.25,
+          7.0,
+          10.65
+        ],
+        "note": "หลังคาเพิงหลังบ้าน (ลานซักล้าง)"
+      },
+      {
+        "type": "cylinder",
+        "x": 4.0,
+        "z": 0.75,
+        "r": 0.5,
+        "h": 1.5,
+        "y0": 0.35,
+        "color": "tank",
+        "note": "ถังเก็บน้ำ"
+      },
+      {
+        "type": "cylinder",
+        "x": 6.75,
+        "z": 1.83,
+        "r": 0.05,
+        "h": 9.2,
+        "y0": 0,
+        "color": "pipe",
+        "note": "ท่อระบายน้ำสีฟ้า"
+      }
+    ],
+    "wallColors": [
+      {
+        "side": "left",
+        "floors": [
+          1,
+          2
+        ],
+        "color": "accent"
+      },
+      {
+        "side": "back",
+        "floors": [
+          1,
+          2
+        ],
+        "color": "accent"
+      },
+      {
+        "side": "right",
+        "floors": [
+          2
+        ],
+        "color": "accent"
+      }
+    ],
+    "bandColors": [
+      {
+        "side": "left",
+        "floors": [
+          3
+        ],
+        "color": "white"
+      },
+      {
+        "side": "back",
+        "floors": [
+          3
+        ],
+        "color": "white"
+      }
+    ]
   },
-  {
-   "id": "hs-gateway",
-   "type": "gateway",
-   "label": "Sigen Gateway",
-   "floor": 1,
-   "pos": [
-    14.48,
-    1.6,
-    5.4
-   ],
-   "placeholder": true
-  },
-  {
-   "id": "hs-ev",
-   "type": "ev_charger",
-   "label": "ที่ชาร์จรถ EV",
-   "floor": 1,
-   "pos": [
-    14.48,
-    1.3,
-    6.8
-   ],
-   "placeholder": true
-  },
-  {
-   "id": "hs-router",
-   "type": "router",
-   "label": "เราเตอร์ / อินเทอร์เน็ต",
-   "floor": 1,
-   "pos": [
-    12.5,
-    1.2,
-    2.3
-   ],
-   "placeholder": true
-  },
-  {
-   "id": "hs-ap2",
-   "type": "wifi_ap",
-   "label": "จุดกระจาย Wi-Fi ชั้น 2",
-   "floor": 2,
-   "pos": [
-    8.0,
-    6.1,
-    6.0
-   ],
-   "placeholder": true
-  },
-  {
-   "id": "hs-cam-front",
-   "type": "camera",
-   "label": "กล้อง CCTV หน้าบ้าน",
-   "floor": 1,
-   "pos": [
-    20.1,
-    3.1,
-    9.8
-   ],
-   "placeholder": true
-  },
-  {
-   "id": "hs-cam-back",
-   "type": "camera",
-   "label": "กล้อง CCTV หลังบ้าน",
-   "floor": 1,
-   "pos": [
-    3.3,
-    2.9,
-    0.15
-   ],
-   "placeholder": true
-  },
-  {
-   "id": "hs-smarthome",
-   "type": "smarthome_gateway",
-   "label": "Gateway สมาร์ทโฮม",
-   "floor": 1,
-   "pos": [
-    9.0,
-    1.2,
-    6.3
-   ],
-   "placeholder": true
-  },
-  {
-   "id": "hs-cam-spirit",
-   "type": "camera",
-   "label": "กล้อง CCTV ข้างศาลพระภูมิ",
-   "floor": 1,
-   "pos": [
-    19.95,
-    2.7,
-    2.7
-   ],
-   "placeholder": true,
-   "note": "ประมาณจากรูปถ่าย"
+  "site": {
+    "frontAzimuthDeg": 30,
+    "lat": 13.75,
+    "lon": 100.5,
+    "tz": "Asia/Bangkok",
+    "note": "หน้าบ้าน (ถนน) หันประมาณ NNE 30° ตามภาพจากโปรแกรมออกแบบก่อนติดตั้ง; แกนยาวบ้าน WNW–ESE; โรงจอดรถอยู่ฝั่ง WNW"
   }
- ],
- "palette": {
-  "white": "#ffffff",
-  "accent": "#8e9aab",
-  "slate": "#5f6b7a",
-  "louver": "#8a9099",
-  "wood": "#b5573a",
-  "stone": "#6a6760",
-  "dark": "#555555",
-  "metal": "#1f2224",
-  "glass": "#9fd8a8",
-  "plinth": "#9b9b98",
-  "roofUnder": "#d4d6d8",
-  "voidSlate": "#4f5a66",
-  "roofFascia": "#f4f4f2",
-  "roofTop": "#e3e5e6",
-  "metalRoof": "#8d9196",
-  "wall": "#e9ecec",
-  "stairWood": "#8a5a36",
-  "bronze": "#8b5a2b",
-  "canopy": "#2a2d30",
-  "concrete": "#a3a5a6"
- },
- "facade": {
-  "note": "ตำแหน่งประตู/หน้าต่างและวัสดุตามรูปด้าน (ประมาณ)",
-  "openings": [
-   {
-    "id": "f1-front-multi",
-    "floor": 1,
-    "wall": {
-     "z": 8.9
-    },
-    "from": 3.4,
-    "to": 6.55,
-    "sill": 0.3,
-    "head": 2.55,
-    "type": "window",
-    "panes": 4
-   },
-   {
-    "id": "f1-front-dining",
-    "floor": 1,
-    "wall": {
-     "z": 8.9
-    },
-    "from": 7.1,
-    "to": 10.3,
-    "sill": 0.3,
-    "head": 2.55,
-    "type": "window",
-    "panes": 4
-   },
-   {
-    "id": "f1-entrance",
-    "floor": 1,
-    "wall": {
-     "z": 7.2
-    },
-    "from": 11.0,
-    "to": 13.95,
-    "sill": 0.0,
-    "head": 2.4,
-    "type": "door",
-    "panes": 4
-   },
-   {
-    "id": "f2-front-bed1",
-    "floor": 2,
-    "wall": {
-     "z": 8.9
-    },
-    "from": 3.5,
-    "to": 6.45,
-    "sill": 0.5,
-    "head": 2.3,
-    "type": "window",
-    "panes": 4
-   },
-   {
-    "id": "f2-front-balcony-door",
-    "floor": 2,
-    "wall": {
-     "z": 8.9
-    },
-    "from": 7.3,
-    "to": 9.1,
-    "sill": 0.0,
-    "head": 2.3,
-    "type": "door",
-    "panes": 2
-   },
-   {
-    "id": "f2-front-bed2",
-    "floor": 2,
-    "wall": {
-     "z": 8.9
-    },
-    "from": 11.05,
-    "to": 13.9,
-    "sill": 0.5,
-    "head": 2.3,
-    "type": "window",
-    "panes": 4,
-    "frameColor": "metal"
-   },
-   {
-    "id": "f2-front-slider",
-    "floor": 2,
-    "wall": {
-     "z": 8.1
-    },
-    "from": 14.6,
-    "to": 16.4,
-    "sill": 0.0,
-    "head": 2.3,
-    "type": "door",
-    "panes": 2
-   },
-   {
-    "id": "f3-front-master",
-    "floor": 3,
-    "wall": {
-     "z": 8.9
-    },
-    "from": 3.6,
-    "to": 6.4,
-    "sill": 0.2,
-    "head": 2.6,
-    "type": "window",
-    "panes": 4
-   },
-   {
-    "id": "f3-front-lounge",
-    "floor": 3,
-    "wall": {
-     "z": 8.9
-    },
-    "from": 11.1,
-    "to": 13.85,
-    "sill": 0.2,
-    "head": 2.6,
-    "type": "window",
-    "panes": 4
-   },
-   {
-    "id": "f3-terrace-door",
-    "floor": 3,
-    "wall": {
-     "x": 14.35
-    },
-    "from": 6.0,
-    "to": 8.4,
-    "sill": 0.0,
-    "head": 2.4,
-    "type": "door",
-    "panes": 2
-   },
-   {
-    "id": "f1-wc-square",
-    "floor": 1,
-    "wall": {
-     "z": 6.3
-    },
-    "from": 1.75,
-    "to": 2.35,
-    "sill": 1.4,
-    "head": 2.0,
-    "type": "window",
-    "panes": 1,
-    "deepFrame": true
-   },
-   {
-    "id": "f2-wc-square",
-    "floor": 2,
-    "wall": {
-     "z": 6.3
-    },
-    "from": 1.75,
-    "to": 2.35,
-    "sill": 1.4,
-    "head": 2.0,
-    "type": "window",
-    "panes": 1,
-    "deepFrame": true
-   },
-   {
-    "id": "f3-wc-square",
-    "floor": 3,
-    "wall": {
-     "z": 6.3
-    },
-    "from": 1.75,
-    "to": 2.35,
-    "sill": 1.4,
-    "head": 2.0,
-    "type": "window",
-    "panes": 1,
-    "deepFrame": true
-   },
-   {
-    "id": "f1-left-square",
-    "floor": 1,
-    "wall": {
-     "x": 3.1
-    },
-    "from": 7.3,
-    "to": 7.9,
-    "sill": 1.2,
-    "head": 1.8,
-    "type": "window",
-    "panes": 1,
-    "deepFrame": true
-   },
-   {
-    "id": "f3-left-narrow-back",
-    "floor": 3,
-    "wall": {
-     "x": 3.1
-    },
-    "from": 2.35,
-    "to": 2.85,
-    "sill": 0.3,
-    "head": 2.5,
-    "type": "window",
-    "panes": 1,
-    "deepFrame": true
-   },
-   {
-    "id": "f3-left-narrow-front",
-    "floor": 3,
-    "wall": {
-     "x": 3.1
-    },
-    "from": 8.05,
-    "to": 8.55,
-    "sill": 0.3,
-    "head": 2.5,
-    "type": "window",
-    "panes": 1,
-    "deepFrame": true
-   },
-   {
-    "id": "f1-right-door",
-    "floor": 1,
-    "wall": {
-     "x": 14.35
-    },
-    "from": 5.2,
-    "to": 6.2,
-    "sill": 0.0,
-    "head": 2.4,
-    "type": "door",
-    "panes": 1
-   },
-   {
-    "id": "f2-right-square",
-    "floor": 2,
-    "wall": {
-     "x": 17.35
-    },
-    "from": 2.7,
-    "to": 3.3,
-    "sill": 1.3,
-    "head": 1.9,
-    "type": "window",
-    "panes": 1,
-    "deepFrame": true
-   },
-   {
-    "id": "f3-right-work",
-    "floor": 3,
-    "wall": {
-     "x": 17.35
-    },
-    "from": 2.3,
-    "to": 5.0,
-    "sill": 0.6,
-    "head": 2.4,
-    "type": "window",
-    "panes": 3
-   },
-   {
-    "id": "f1-back-door",
-    "floor": 1,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 3.5,
-    "to": 4.4,
-    "sill": 0.0,
-    "head": 2.2,
-    "type": "door",
-    "panes": 1
-   },
-   {
-    "id": "f1-back-kitchen",
-    "floor": 1,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 4.9,
-    "to": 6.3,
-    "sill": 1.0,
-    "head": 2.1,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f1-back-stair",
-    "floor": 1,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 7.0,
-    "to": 8.0,
-    "sill": 1.0,
-    "head": 2.1,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f1-back-living",
-    "floor": 1,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 11.8,
-    "to": 13.2,
-    "sill": 1.0,
-    "head": 2.1,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f2-back-balcony-door",
-    "floor": 2,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 4.0,
-    "to": 5.0,
-    "sill": 0.0,
-    "head": 2.3,
-    "type": "door",
-    "panes": 1
-   },
-   {
-    "id": "f2-back-lounge",
-    "floor": 2,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 7.1,
-    "to": 8.1,
-    "sill": 1.0,
-    "head": 2.1,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f2-back-bed2",
-    "floor": 2,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 11.8,
-    "to": 13.2,
-    "sill": 1.0,
-    "head": 2.1,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f3-back-master-1",
-    "floor": 3,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 3.9,
-    "to": 5.3,
-    "sill": 1.0,
-    "head": 2.2,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f3-back-master-2",
-    "floor": 3,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 6.3,
-    "to": 7.7,
-    "sill": 1.0,
-    "head": 2.2,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f3-back-stair",
-    "floor": 3,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 8.8,
-    "to": 10.0,
-    "sill": 1.0,
-    "head": 2.2,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f3-back-lounge",
-    "floor": 3,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 11.8,
-    "to": 13.2,
-    "sill": 1.0,
-    "head": 2.1,
-    "type": "window",
-    "panes": 2
-   },
-   {
-    "id": "f3-back-work",
-    "floor": 3,
-    "wall": {
-     "z": 2.0
-    },
-    "from": 15.2,
-    "to": 16.4,
-    "sill": 1.0,
-    "head": 2.2,
-    "type": "window",
-    "panes": 2
-   }
-  ],
-  "features": [
-   {
-    "type": "frame",
-    "plane": "z",
-    "c": 8.9,
-    "out": 1,
-    "a0": 3.1,
-    "a1": 10.6,
-    "y0": 0.5,
-    "y1": 3.4,
-    "depth": 0.45,
-    "t": 0.22,
-    "color": "white",
-    "note": "กรอบยื่นชั้น 1"
-   },
-   {
-    "type": "frame",
-    "plane": "z",
-    "c": 8.9,
-    "out": 1,
-    "a0": 3.1,
-    "a1": 6.85,
-    "y0": 3.6,
-    "y1": 6.2,
-    "depth": 0.3,
-    "t": 0.18,
-    "color": "white"
-   },
-   {
-    "type": "frame",
-    "plane": "z",
-    "c": 8.9,
-    "out": 1,
-    "a0": 10.7,
-    "a1": 14.25,
-    "y0": 3.75,
-    "y1": 6.2,
-    "depth": 0.45,
-    "t": 0.2,
-    "color": "white",
-    "outline": "accent"
-   },
-   {
-    "type": "louver",
-    "plane": "z",
-    "c": 8.9,
-    "out": 1,
-    "a0": 3.5,
-    "a1": 6.5,
-    "y0": 6.5,
-    "y1": 9.1,
-    "color": "louver"
-   },
-   {
-    "type": "louver",
-    "plane": "z",
-    "c": 8.9,
-    "out": 1,
-    "a0": 11.0,
-    "a1": 13.95,
-    "y0": 6.5,
-    "y1": 9.1,
-    "color": "louver"
-   },
-   {
-    "type": "panel",
-    "color": "stone",
-    "box": [
-     13.95,
-     0.35,
-     8.45,
-     14.5,
-     3.45,
-     9.0
-    ],
-    "note": "เสาหินทางเข้า"
-   },
-   {
-    "type": "panel",
-    "color": "stone",
-    "box": [
-     14.45,
-     0.45,
-     6.4,
-     14.52,
-     3.45,
-     7.2
-    ]
-   },
-   {
-    "type": "slats",
-    "plane": "z",
-    "c": 8.85,
-    "a0": 16.45,
-    "a1": 17.3,
-    "y0": 3.6,
-    "y1": 6.3,
-    "spacing": 0.14,
-    "w": 0.05,
-    "depth": 0.08,
-    "color": "wood"
-   },
-   {
-    "type": "pergola",
-    "box": [
-     14.35,
-     9.1,
-     5.2,
-     17.4,
-     9.25,
-     8.95
-    ],
-    "dir": "x",
-    "spacing": 0.5,
-    "color": "dark"
-   },
-   {
-    "type": "panel",
-    "color": "accent",
-    "box": [
-     0.9,
-     0.45,
-     6.4,
-     1.2,
-     9.2,
-     6.46
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "white",
-    "box": [
-     1.0,
-     3.25,
-     2.25,
-     3.1,
-     3.35,
-     3.1
-    ],
-    "note": "กันสาดด้านซ้าย +3.3"
-   },
-   {
-    "type": "panel",
-    "color": "dark",
-    "box": [
-     1.0,
-     3.22,
-     2.22,
-     3.1,
-     3.25,
-     2.28
-    ]
-   },
-   {
-    "type": "slats",
-    "plane": "x",
-    "c": 17.48,
-    "a0": 2.2,
-    "a1": 3.1,
-    "y0": 6.55,
-    "y1": 9.1,
-    "spacing": 0.13,
-    "w": 0.05,
-    "depth": 0.08,
-    "color": "wood"
-   },
-   {
-    "type": "slats",
-    "plane": "x",
-    "c": 17.48,
-    "a0": 3.2,
-    "a1": 4.1,
-    "y0": 6.55,
-    "y1": 9.1,
-    "spacing": 0.13,
-    "w": 0.05,
-    "depth": 0.08,
-    "color": "wood"
-   },
-   {
-    "type": "slats",
-    "plane": "x",
-    "c": 17.48,
-    "a0": 4.2,
-    "a1": 5.1,
-    "y0": 6.55,
-    "y1": 9.1,
-    "spacing": 0.13,
-    "w": 0.05,
-    "depth": 0.08,
-    "color": "wood"
-   },
-   {
-    "type": "panel",
-    "color": "accent",
-    "box": [
-     14.45,
-     3.75,
-     1.84,
-     17.25,
-     6.25,
-     1.9
-    ]
-   },
-   {
-    "type": "slats",
-    "plane": "z",
-    "c": 1.42,
-    "a0": 5.15,
-    "a1": 6.2,
-    "y0": 3.6,
-    "y1": 6.3,
-    "spacing": 0.14,
-    "w": 0.05,
-    "depth": 0.08,
-    "color": "wood"
-   },
-   {
-    "type": "slab",
-    "box": [
-     14.3,
-     9.2,
-     1.7,
-     17.65,
-     9.32,
-     5.3
-    ],
-    "color": "roofUnder",
-    "edge": "dark",
-    "group": "roof"
-   },
-   {
-    "type": "panel",
-    "color": "accent",
-    "box": [
-     3.1,
-     0.3,
-     8.9,
-     10.6,
-     0.5,
-     9.38
-    ],
-    "note": "ฐานกรอบชั้น 1"
-   },
-   {
-    "type": "panel",
-    "color": "white",
-    "box": [
-     10.8,
-     3.08,
-     7.2,
-     14.15,
-     3.16,
-     8.55
-    ],
-    "note": "กันสาดทางเข้า"
-   },
-   {
-    "type": "panel",
-    "color": "voidSlate",
-    "box": [
-     7.0,
-     5.9,
-     9.06,
-     9.4,
-     9.2,
-     9.1
-    ],
-    "note": "ช่องโถงกลาง (สีเทาเข้ม)"
-   },
-   {
-    "type": "panel",
-    "color": "voidSlate",
-    "box": [
-     7.0,
-     3.6,
-     9.06,
-     7.3,
-     5.9,
-     9.1
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "voidSlate",
-    "box": [
-     9.1,
-     3.6,
-     9.06,
-     9.4,
-     5.9,
-     9.1
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "voidSlate",
-    "box": [
-     6.92,
-     3.6,
-     8.9,
-     7.0,
-     9.2,
-     9.55
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "voidSlate",
-    "box": [
-     9.4,
-     3.6,
-     8.9,
-     9.48,
-     9.2,
-     9.55
-    ]
-   },
-   {
-    "type": "frame",
-    "plane": "z",
-    "c": 8.9,
-    "out": 1,
-    "a0": 3.3,
-    "a1": 6.7,
-    "y0": 6.4,
-    "y1": 9.2,
-    "depth": 0.36,
-    "t": 0.2,
-    "color": "white",
-    "outline": "accent"
-   },
-   {
-    "type": "frame",
-    "plane": "z",
-    "c": 8.9,
-    "out": 1,
-    "a0": 10.8,
-    "a1": 14.15,
-    "y0": 6.4,
-    "y1": 9.2,
-    "depth": 0.36,
-    "t": 0.2,
-    "color": "white",
-    "outline": "accent"
-   },
-   {
-    "type": "panel",
-    "color": "accent",
-    "box": [
-     2.94,
-     0.45,
-     8.55,
-     3.0,
-     9.2,
-     9.0
-    ],
-    "note": "แถบมุมซ้าย"
-   },
-   {
-    "type": "panel",
-    "color": "accent",
-    "box": [
-     0.84,
-     0.45,
-     6.1,
-     0.9,
-     9.2,
-     6.4
-    ]
-   },
-   {
-    "type": "slats",
-    "plane": "z",
-    "c": 9.25,
-    "a0": 8.25,
-    "a1": 9.4,
-    "y0": 3.6,
-    "y1": 9.2,
-    "spacing": 0.16,
-    "w": 0.05,
-    "depth": 0.3,
-    "color": "metal",
-    "note": "ครีบระแนงสีเข้ม (จากรูปถ่าย)"
-   },
-   {
-    "type": "panel",
-    "color": "accent",
-    "box": [
-     10.7,
-     3.5,
-     8.9,
-     14.25,
-     3.62,
-     9.55
-    ],
-    "note": "กันสาดเทาฟ้าใต้กรอบชั้น 2"
-   },
-   {
-    "type": "panel",
-    "color": "bronzeGlass",
-    "box": [
-     14.35,
-     9.27,
-     5.2,
-     17.4,
-     9.3,
-     8.95
-    ],
-    "note": "หลังคาเพอร์โกล่าโปร่งแสงสีบรอนซ์"
-   },
-   {
-    "type": "pergola",
-    "box": [
-     17.35,
-     3.25,
-     2.8,
-     20.3,
-     3.4,
-     9.95
-    ],
-    "dir": "x",
-    "spacing": 1.0,
-    "color": "metal",
-    "note": "หลังคาโรงจอดรถโครงเหล็กดำ"
-   },
-   {
-    "type": "panel",
-    "color": "tintGlass",
-    "box": [
-     17.4,
-     3.36,
-     2.85,
-     20.25,
-     3.39,
-     9.9
-    ]
-   },
-   {
-    "type": "pergola",
-    "box": [
-     14.35,
-     3.25,
-     8.95,
-     17.35,
-     3.4,
-     9.95
-    ],
-    "dir": "z",
-    "spacing": 1.0,
-    "color": "metal"
-   },
-   {
-    "type": "panel",
-    "color": "tintGlass",
-    "box": [
-     14.4,
-     3.36,
-     9.0,
-     17.3,
-     3.39,
-     9.9
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "metal",
-    "box": [
-     20.05,
-     0,
-     9.7,
-     20.2,
-     3.3,
-     9.85
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "metal",
-    "box": [
-     20.05,
-     0,
-     2.85,
-     20.2,
-     3.3,
-     3.0
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "metal",
-    "box": [
-     14.45,
-     0,
-     9.7,
-     14.6,
-     3.3,
-     9.85
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "concrete",
-    "box": [
-     13.85,
-     0,
-     9.7,
-     14.3,
-     2.0,
-     10.0
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "concrete",
-    "box": [
-     20.0,
-     0,
-     9.7,
-     20.3,
-     2.0,
-     10.0
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "concrete",
-    "box": [
-     0.12,
-     0,
-     9.7,
-     0.45,
-     1.9,
-     10.0
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "concrete",
-    "box": [
-     1.55,
-     0,
-     9.7,
-     1.85,
-     1.9,
-     10.0
-    ]
-   },
-   {
-    "type": "hslats",
-    "plane": "z",
-    "c": 9.88,
-    "a0": 14.3,
-    "a1": 20.0,
-    "y0": 0.05,
-    "y1": 1.8,
-    "spacing": 0.12,
-    "h": 0.07,
-    "color": "metal",
-    "note": "ประตูรั้วบานเลื่อนระแนงดำ"
-   },
-   {
-    "type": "hslats",
-    "plane": "z",
-    "c": 9.88,
-    "a0": 0.45,
-    "a1": 1.55,
-    "y0": 0.05,
-    "y1": 1.8,
-    "spacing": 0.12,
-    "h": 0.07,
-    "color": "metal",
-    "note": "ประตูคนเดิน"
-   },
-   {
-    "type": "hslats",
-    "plane": "z",
-    "c": 9.95,
-    "a0": 1.85,
-    "a1": 13.85,
-    "y0": 0.45,
-    "y1": 1.6,
-    "spacing": 0.14,
-    "h": 0.07,
-    "color": "metal",
-    "note": "รั้วระแนงดำ (ประมาณ)"
-   },
-   {
-    "type": "panel",
-    "color": "concrete",
-    "box": [
-     1.85,
-     0,
-     9.8,
-     13.85,
-     0.45,
-     10.0
-    ]
-   },
-   {
-    "type": "panel",
-    "color": "concrete",
-    "box": [
-     1.9,
-     0,
-     9.2,
-     6.8,
-     0.4,
-     9.75
-    ],
-    "note": "กระบะต้นไม้"
-   },
-   {
-    "type": "shrubs",
-    "y": 0.35,
-    "points": [
-     [
-      2.4,
-      9.5,
-      0.35
-     ],
-     [
-      3.2,
-      9.45,
-      0.4
-     ],
-     [
-      4.1,
-      9.5,
-      0.35
-     ],
-     [
-      5.0,
-      9.45,
-      0.4
-     ],
-     [
-      5.9,
-      9.5,
-      0.35
-     ],
-     [
-      6.5,
-      9.45,
-      0.3
-     ]
-    ]
-   },
-   {
-    "type": "spirit",
-    "x": 19.55,
-    "z": 2.3
-   },
-   {
-    "type": "leanto",
-    "x0": 3.1,
-    "x1": 10.8,
-    "zHigh": 1.95,
-    "zLow": 0.15,
-    "yHigh": 3.2,
-    "yLow": 2.6,
-    "color": "roofTop",
-    "posts": [
-     3.25,
-     7.0,
-     10.65
-    ],
-    "note": "หลังคาเพิงหลังบ้าน (ลานซักล้าง)"
-   },
-   {
-    "type": "cylinder",
-    "x": 4.0,
-    "z": 0.75,
-    "r": 0.5,
-    "h": 1.5,
-    "y0": 0.35,
-    "color": "tank",
-    "note": "ถังเก็บน้ำ"
-   },
-   {
-    "type": "cylinder",
-    "x": 6.75,
-    "z": 1.83,
-    "r": 0.05,
-    "h": 9.2,
-    "y0": 0,
-    "color": "pipe",
-    "note": "ท่อระบายน้ำสีฟ้า"
-   }
-  ],
-  "wallColors": [
-   {
-    "side": "left",
-    "floors": [
-     1,
-     2
-    ],
-    "color": "accent"
-   },
-   {
-    "side": "back",
-    "floors": [
-     1,
-     2
-    ],
-    "color": "accent"
-   },
-   {
-    "side": "right",
-    "floors": [
-     2
-    ],
-    "color": "accent"
-   }
-  ],
-  "bandColors": [
-   {
-    "side": "left",
-    "floors": [
-     3
-    ],
-    "color": "white"
-   },
-   {
-    "side": "back",
-    "floors": [
-     3
-    ],
-    "color": "white"
-   }
-  ]
- },
- "site": {
-  "frontAzimuthDeg": 30,
-  "lat": 13.75,
-  "lon": 100.5,
-  "tz": "Asia/Bangkok",
-  "note": "หน้าบ้าน (ถนน) หันประมาณ NNE 30° ตามภาพจากโปรแกรมออกแบบก่อนติดตั้ง; แกนยาวบ้าน WNW–ESE; โรงจอดรถอยู่ฝั่ง WNW"
- }
 }

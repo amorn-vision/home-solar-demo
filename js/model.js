@@ -391,12 +391,23 @@ export function buildHouse(data) {
   const roofPivot = new THREE.Group(); roofPivot.name = 'main-roof';
   roofPivot.position.set((rx0 + rx1) / 2, (rf.lowY + rf.highY) / 2 + 0.1, (rz0 + rz1) / 2);
   roofPivot.rotation.x = rf.highSide === 'front' ? -ang : ang;
-  const slab = box(W, 0.12, D, [MAT.roofUnder, MAT.roofUnder, MAT.roofTop, MAT.roofUnder, MAT.roofUnder, MAT.roofUnder], 0, 0, 0);
-  { const t = MAT.roofTop.map; t.repeat.set(W / t.userData.step, 1); } slab.name = 'roof-slab'; roofPivot.add(slab);
-  roofPivot.add(box(W + 0.06, 0.32, 0.06, MAT.fascia, 0, -0.03, D / 2));
+  // optional notch: rectangle cut from the FRONT (+z, street) corner at the low-x (ESE / street-view left) end
+  const nt = rf.notch && rf.notch.width > 0 ? rf.notch : null;
+  const nw = nt ? nt.width : 0, nd = nt ? nt.depth : 0;
+  const RMAT = m => [MAT.roofUnder, MAT.roofUnder, m, MAT.roofUnder, MAT.roofUnder, MAT.roofUnder];
+  const slab = box(W - nw, 0.12, D, RMAT(MAT.roofTop), nw / 2, 0, 0);
+  { const t = MAT.roofTop.map; t.repeat.set((W - nw) / t.userData.step, 1); } slab.name = 'roof-slab'; roofPivot.add(slab);
+  if (nt) {
+    const t2 = MAT.roofTop.map.clone(); t2.needsUpdate = true; t2.repeat.set(nw / t2.userData.step, (D - nd) / D);
+    const m2 = MAT.roofTop.clone(); m2.map = t2;
+    const s2 = box(nw + 0.002, 0.12, D - nd, RMAT(m2), -W / 2 + nw / 2, 0, -nd / 2); s2.name = 'roof-slab-notch-strip'; roofPivot.add(s2);
+    roofPivot.add(box(nw + 0.06, 0.32, 0.06, MAT.fascia, -W / 2 + nw / 2, -0.03, D / 2 - nd)); // notch inner edge (across)
+    roofPivot.add(box(0.06, 0.32, nd, MAT.fascia, -W / 2 + nw, -0.03, D / 2 - nd / 2)); // notch inner edge (along slope)
+  }
+  roofPivot.add(box(W - nw + 0.06, 0.32, 0.06, MAT.fascia, nw / 2, -0.03, D / 2));
   roofPivot.add(box(W + 0.06, 0.32, 0.06, MAT.fascia, 0, -0.03, -D / 2));
   roofPivot.add(box(0.06, 0.32, D, MAT.fascia, W / 2, -0.03, 0));
-  roofPivot.add(box(0.06, 0.32, D, MAT.fascia, -W / 2, -0.03, 0));
+  roofPivot.add(box(0.06, 0.32, D - nd, MAT.fascia, -W / 2, -0.03, -nd / 2));
   for (const st of rf.steps || []) {
     const ext = st.extendBack, cx = (st.fromX + st.toX) / 2 - (rx0 + rx1) / 2, w = st.toX - st.fromX;
     const zc = -D / 2 - ext / 2 + 0.03;
@@ -446,7 +457,7 @@ export function buildHouse(data) {
     let n = 0;
     for (let r = st.rows - 1; r >= 0 && n < st.count; r--) for (let c = 0; c < st.cols && n < st.count; c++) {
       const x = xCur + c * (dm.px + pg) + dm.px / 2;
-      const z = (st.offset || 0) - dm.wz / 2 + r * (dm.pz + pg) + dm.pz / 2;
+      const z = (st.offset || 0) + (st.colOffsets?.[c] || 0) - dm.wz / 2 + r * (dm.pz + pg) + dm.pz / 2;
       const p = new THREE.Mesh(new THREE.BoxGeometry(dm.px, 0.04, dm.pz), mat);
       p.position.set(x, 0.12, z); p.castShadow = true; p.name = 'panel-' + st.id + '-' + (n + 1); n++; idx++;
       p.userData = { pick: 'solar', floor: 4, panelIndex: n, group: gI + 1, string: st.id, stringLabel: st.label };
