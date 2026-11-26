@@ -12,9 +12,13 @@ export async function createScene(el) {
   const data = await (await fetch('./data/house.json')).json();
   FRONT_AZ = data.site?.frontAzimuthDeg ?? 30;
   const C = new THREE.Vector3(data.meta.lot.width / 2, 5.5, data.meta.lot.depth / 2);
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // perf: phones get a cheaper pipeline (no MSAA, dpr ≤ 1.5, PCF 512 shadows); desktop unchanged
+  const MOBILE = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+  const renderer = new THREE.WebGLRenderer({ antialias: !MOBILE, alpha: false, powerPreference: MOBILE ? 'low-power' : 'default' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, MOBILE ? 1.5 : 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = MOBILE ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = false; // shadows only re-baked when the sun moves
+  let active = true, onScreen = true, raf = 0, lastT = 0, lastFrame = 0, thr = 0, rotSince = 0, tween = null, dragging = false, endT = 0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   el.appendChild(renderer.domElement);
   const labels = new CSS2DRenderer();
@@ -33,7 +37,7 @@ export async function createScene(el) {
 
   const hemi = new THREE.HemisphereLight(0xffffff, 0x3e5a44, 1.3); scene.add(hemi);
   const sunLight = new THREE.DirectionalLight(0xfff1dc, 2.3);
-  sunLight.castShadow = true; sunLight.shadow.mapSize.set(1024, 1024);
+  sunLight.castShadow = true; sunLight.shadow.mapSize.set(MOBILE ? 512 : 1024, MOBILE ? 512 : 1024);
   Object.assign(sunLight.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 90 });
   sunLight.target.position.set(C.x, 0, C.z); scene.add(sunLight, sunLight.target);
 
@@ -91,6 +95,7 @@ export async function createScene(el) {
     sunLight.intensity = day ? 0.8 + 1.8 * Math.min(1, s.elev / 40) : 0.35;
     sunLight.color.setHex(day && s.elev < 15 ? 0xffd2a0 : day ? 0xfff1dc : 0x9fb4ff);
     hemi.intensity = day ? 1.3 : 0.75;
+    renderer.shadowMap.needsUpdate = true; requestRender();
     return s;
   }
 
@@ -116,9 +121,11 @@ export async function createScene(el) {
   const controls = new OrbitControls(cam, renderer.domElement);
   controls.enableDamping = true; controls.target.copy(C); controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 12; controls.maxDistance = 80;
   controls.autoRotate = true; controls.autoRotateSpeed = 0.55; controls.enablePan = false;
-  let idleTimer; controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idleTimer); });
-  controls.addEventListener('end', () => { idleTimer = setTimeout(() => { if (mode === '3d') controls.autoRotate = true; }, 6000); });
-  let mode = '3d', tween = null;
+  let idleTimer;
+  controls.addEventListener('start', () => { dragging = true; controls.autoRotate = false; clearTimeout(idleTimer); requestRender(); });
+  controls.addEventListener('end', () => { dragging = false; endT = performance.now(); requestRender(); idleTimer = setTimeout(() => { if (mode === '3d') { controls.autoRotate = true; requestRender(); } }, 6000); });
+  controls.addEventListener('change', () => requestRender());
+  let mode = '3d';
   function homePos() { const a = el.clientWidth / Math.max(el.clientHeight, 1), dist = 60 / Math.min(1.2, Math.max(0.7, a * 0.8)); return C.clone().add(new THREE.Vector3(0.35, 0.36, 0.86).normalize().multiplyScalar(dist)); }
   function topPos() { const a = el.clientWidth / Math.max(el.clientHeight, 1); return new THREE.Vector3(C.x, 30 + 26 / Math.min(a, 1.4), C.z + 0.01); }
   cam.position.copy(homePos());
@@ -127,17 +134,31 @@ export async function createScene(el) {
     const from = cam.position.clone(), to = m === '3d' ? homePos() : topPos(), t0 = performance.now();
     tween = t => { const k = Math.min(1, (t - t0) / 900), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; cam.position.lerpVectors(from, to, e); if (k >= 1) tween = null; };
     arcGroup.visible = sunMesh.visible = m === '3d' ? true : false; if (m === '3d') updateSun(new Date());
+    requestRender();
   }
-  function resize() { const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h); labels.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  function resize() { const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h); labels.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); requestRender(); }
   new ResizeObserver(resize).observe(el); resize();
 
-  let active = true, lastSun = 0;
-  renderer.setAnimationLoop(t => {
-    if (!active) return;
-    if (t - lastSun > 30000 || !lastSun) { lastSun = t; if (mode === '3d') updateSun(new Date()); }
-    tween?.(t); controls.update(); renderer.render(scene, cam); labels.render(scene, cam);
-  });
-  updateSun(new Date());
+  // ---- render on demand: only while dragging/damping, tweening, or (throttled) auto-rotating ----
+  const ROT_FPS = MOBILE ? 15 : 30, ROT_MAX = MOBILE ? 20000 : 60000; // idle auto-rotate is slow → low fps is visually the same, far less heat
+  const lastPos = new THREE.Vector3(), lastQ = new THREE.Quaternion(); window.__renders = window.__renders || 0;
+  function requestRender() { if (!raf && active && onScreen && !document.hidden) raf = requestAnimationFrame(frame); }
+  function frame(t) {
+    raf = 0;
+    const busy = dragging || !!tween || performance.now() - endT < 1500;
+    if (!busy && controls.autoRotate && t - lastFrame < 1000 / ROT_FPS - 2) { if (!thr) thr = setTimeout(() => { thr = 0; requestRender(); }, 1000 / ROT_FPS - (t - lastFrame)); return; } // throttle without spinning rAF
+    const dt = lastT ? Math.min(0.25, (t - lastT) / 1000) : 1 / 60; lastT = t; lastFrame = t;
+    if (controls.autoRotate) { if (!rotSince) rotSince = t; else if (t - rotSince > ROT_MAX) controls.autoRotate = false; } else rotSince = 0; // idle auto-rotate pauses → 0 fps
+    tween?.(t); controls.update(dt);
+    const moved = cam.position.distanceToSquared(lastPos) > 1e-6 || cam.quaternion.angleTo(lastQ) > 5e-5;
+    lastPos.copy(cam.position); lastQ.copy(cam.quaternion);
+    renderer.render(scene, cam); labels.render(scene, cam); window.__renders++;
+    if (tween || dragging || controls.autoRotate || (moved && performance.now() - endT < 1500)) requestRender(); else lastT = 0;
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { lastT = 0; requestRender(); } });
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { onScreen = es[0].isIntersecting; if (onScreen) { lastT = 0; requestRender(); } }).observe(el);
+  setInterval(() => { if (active && mode === '3d' && !document.hidden) updateSun(new Date()); }, 30000);
+  updateSun(new Date()); requestRender();
 
   const fmt = x => (x == null ? '–' : Math.abs(x).toFixed(2));
   return {
@@ -151,7 +172,7 @@ export async function createScene(el) {
       lblEls.ev.classList.toggle('dim', !(p.ev > 0.05));
     },
     setMode, get mode() { return mode; },
-    setActive(a) { active = a; if (a) resize(); },
+    setActive(a) { active = a; if (a) { lastT = 0; resize(); requestRender(); } },
     sunNow: () => sunPos(bkk(new Date()), bkk(new Date()).min),
   };
 }
