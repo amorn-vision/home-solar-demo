@@ -285,6 +285,36 @@ export function buildHouse(data) {
     for (let i = 0; i <= n; i++) { const a = a0 + L * i / n; g.add(q(a - 0.01, a + 0.01, yb, yb + h, 0.01)); }
   }
 
+  // ---------- canvas-texture signs: company plate / house number ----------
+  function signMesh(F) {
+    if (typeof document === 'undefined') return null; // node (GLB tooling) without DOM
+    const W = 1024, H = Math.round(1024 * F.h / F.w), c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d');
+    let mat;
+    if (F.kind === 'company') {
+      x.fillStyle = '#f3f4f5'; x.fillRect(0, 0, W, H);
+      const gr = x.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, '#1f5fbf'); gr.addColorStop(0.55, '#2f8fd8'); gr.addColorStop(1, '#f39a1e');
+      x.fillStyle = gr; x.fillRect(0, H * 0.84, W, H * 0.16);
+      const L = H * 0.62, lx = W * 0.035, ly = H * 0.1; // triangular 'A' logo
+      x.fillStyle = '#1f5fbf'; x.beginPath(); x.moveTo(lx + L * 0.5, ly); x.lineTo(lx, ly + L); x.lineTo(lx + L * 0.36, ly + L); x.closePath(); x.fill();
+      x.fillStyle = '#f39a1e'; x.beginPath(); x.moveTo(lx + L * 0.5, ly); x.lineTo(lx + L, ly + L); x.lineTo(lx + L * 0.64, ly + L); x.closePath(); x.fill();
+      x.fillStyle = '#2f8fd8'; x.fillRect(lx + L * 0.3, ly + L * 0.62, L * 0.4, L * 0.09);
+      x.fillStyle = '#16325c'; x.textBaseline = 'middle';
+      const tx = lx + L + W * 0.03, tw = W - tx - W * 0.03;
+      x.font = `600 ${Math.round(H * 0.27)}px "Noto Sans Thai", Tahoma, sans-serif`; x.fillText(F.line1 || '', tx, H * 0.3, tw);
+      x.font = `700 ${Math.round(H * 0.2)}px Arial, Helvetica, sans-serif`; x.fillStyle = '#1f5fbf'; x.fillText(F.line2 || '', tx, H * 0.64, tw);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+      mat = new THREE.MeshStandardMaterial({ map: t, roughness: 0.45 });
+    } else { // brushed-steel numbers
+      const gr = x.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#e9ecef'); gr.addColorStop(0.5, '#9aa1a8'); gr.addColorStop(1, '#d6dadd');
+      x.font = `700 ${Math.round(H * 0.9)}px Arial, Helvetica, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.lineWidth = H * 0.03; x.strokeStyle = '#5d646b'; x.strokeText(F.text || '', W / 2, H * 0.54); x.fillStyle = gr; x.fillText(F.text || '', W / 2, H * 0.54);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      mat = new THREE.MeshStandardMaterial({ map: t, transparent: true, alphaTest: 0.3, metalness: 0.7, roughness: 0.35 });
+    }
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(F.w, F.h), mat);
+    m.position.set(F.x, F.y, F.z); m.rotation.y = F.rotY || 0; m.name = F.note || ('sign-' + F.kind); return m;
+  }
+
   // ---------- facade features ----------
   const fmat = k => MAT[k] || MAT.white;
   for (const F of facade.features) {
@@ -315,6 +345,46 @@ export function buildHouse(data) {
       const sl = box(F.x1 - F.x0, 0.05, L, m, (F.x0 + F.x1) / 2, (F.yHigh + F.yLow) / 2, (F.zHigh + F.zLow) / 2); sl.rotation.x = -ang; sl.name = F.note || 'lean-to'; floorGroups[1].add(sl);
       for (const x of F.posts || []) floorGroups[1].add(bb(x - 0.04, 0, F.zLow + 0.02, x + 0.04, F.yLow, F.zLow + 0.1, MAT.white));
       continue;
+    }
+    if (F.type === 'canopy') { // flat steel carport canopy: deep charcoal fascia, I-beam grid + diagonal bracing, smoke polycarbonate
+      const [x0, z0, x1, z1] = F.rect, yT = F.top, fd = F.fascia ?? 0.3, open = new Set(F.open || []);
+      const g2 = new THREE.Group(); g2.name = F.note || 'carport-canopy';
+      const steel = MAT.canopy || MAT.metal, beam = MAT.metal;
+      const smoke = new THREE.MeshStandardMaterial({ color: 0x4a5056, transparent: true, opacity: 0.42, roughness: 0.3, metalness: 0.1, side: THREE.DoubleSide, depthWrite: false });
+      const sh = bb(x0, yT - 0.03, z0, x1, yT - 0.01, z1, smoke); sh.castShadow = false; sh.receiveShadow = false; sh.name = 'polycarbonate-smoke'; g2.add(sh);
+      if (!open.has('front')) g2.add(bb(x0, yT - fd, z1 - 0.1, x1, yT + 0.02, z1, steel));
+      if (!open.has('back')) g2.add(bb(x0, yT - fd, z0, x1, yT + 0.02, z0 + 0.1, steel));
+      if (!open.has('left')) g2.add(bb(x0, yT - fd, z0, x0 + 0.1, yT + 0.02, z1, steel));
+      if (!open.has('right')) g2.add(bb(x1 - 0.1, yT - fd, z0, x1, yT + 0.02, z1, steel));
+      const bs = F.beamSpacing ?? 1.5, ps = F.purlinSpacing ?? 0.75;
+      const nb = Math.max(1, Math.round((x1 - x0) / bs));
+      for (let i = 1; i < nb; i++) { const x = x0 + (x1 - x0) * i / nb; // I-beam: web + flanges, run front-back
+        g2.add(bb(x - 0.02, yT - 0.22, z0, x + 0.02, yT - 0.04, z1, beam)); g2.add(bb(x - 0.06, yT - 0.24, z0, x + 0.06, yT - 0.22, z1, beam)); g2.add(bb(x - 0.06, yT - 0.05, z0, x + 0.06, yT - 0.03, z1, beam)); }
+      for (let z = z0 + ps; z < z1 - 0.15; z += ps) g2.add(bb(x0, yT - 0.11, z, x1, yT - 0.03, z + 0.05, beam));
+      if (F.bracing !== false) { const xs = [x0, ...Array.from({ length: nb - 1 }, (_, i) => x0 + (x1 - x0) * (i + 1) / nb), x1];
+        const bayZ = Math.min(2.4, (z1 - z0) / 2), zs = [[z0, z0 + bayZ], [z1 - bayZ, z1]];
+        for (let i = 0; i < xs.length - 1; i++) for (const [za, zb] of zs) for (const dir of [1, -1]) {
+          const dx = xs[i + 1] - xs[i], dz = zb - za, L = Math.hypot(dx, dz), r = box(0.025, 0.025, L, beam, (xs[i] + xs[i + 1]) / 2, yT - 0.16, (za + zb) / 2);
+          r.rotation.y = Math.atan2(dx, dz) * dir; g2.add(r); } }
+      for (const [px, pz] of F.posts || []) g2.add(bb(px - 0.05, 0, pz - 0.05, px + 0.05, yT - fd, pz + 0.05, beam));
+      g2.traverse(o => { if (o.isMesh && o !== sh) o.castShadow = true; });
+      floorGroups[1].add(g2); continue;
+    }
+    if (F.type === 'hedge') { const [x0, y0, z0, x1, y1, z1] = F.box; const m = bb(x0, y0, z0, x1, y1, z1, MAT.shrub); m.name = F.note || 'hedge'; floorGroups[1].add(m); continue; }
+    if (F.type === 'sign') { const m = signMesh(F); if (m) groupFor(floorOfY(F.y ?? 0)).add(m); continue; }
+    if (F.type === 'dome') {
+      const g2 = new THREE.Group(); g2.name = F.note || 'cctv-dome'; g2.position.set(F.x, F.y, F.z);
+      g2.add(box(0.2, 0.05, 0.2, MAT.white, 0, 0.12, 0)); g2.add(box(0.05, 0.1, 0.05, MAT.white, 0, 0.06, 0));
+      const d = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), MAT.white); g2.add(d);
+      const lens = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 8), new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.2 })); lens.position.y = -0.03; g2.add(lens);
+      if (F.amber) { const a = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.07, 12), new THREE.MeshStandardMaterial({ color: 0xffa000, emissive: 0xff8000, emissiveIntensity: 0.6 })); a.position.y = 0.2; g2.add(a); }
+      groupFor(floorOfY(F.y)).add(g2); continue;
+    }
+    if (F.type === 'bullet') { // small wall/eave CCTV bullet camera
+      const g2 = new THREE.Group(); g2.name = F.note || 'cctv'; g2.position.set(F.x, F.y, F.z); g2.rotation.y = F.rotY || 0;
+      g2.add(box(0.08, 0.12, 0.08, MAT.white, 0, 0.06, 0)); g2.add(box(0.12, 0.1, 0.26, MAT.white, 0, -0.03, 0.1));
+      g2.add(box(0.09, 0.07, 0.02, new THREE.MeshStandardMaterial({ color: 0x111111 }), 0, -0.03, 0.235));
+      groupFor(floorOfY(F.y)).add(g2); continue;
     }
     const grp = groupFor(floorOfY(F.y0 ?? F.box?.[1] ?? 0));
     const P = F.plane, mat = fmat(F.color);
