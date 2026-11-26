@@ -16,17 +16,28 @@ function setPalette(p = {}) {
   const P = Object.assign({ white: '#ffffff', accent: '#8e9aab', slate: '#5f6b7a', louver: '#8a9099', wood: '#7a4e2d', stone: '#4b4a47', dark: '#555555', metal: '#202224', glass: '#9fd8a8', plinth: '#9b9b98', roofUnder: '#d4d6d8' }, p);
   const std = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: new THREE.Color(c), roughness: 0.85 }, o));
   Object.assign(MAT, {
-    wall: std(P.white, { roughness: 0.92 }), partition: std('#fbfbfa'), white: std(P.white),
+    wall: std(P.wall || P.white, { roughness: 0.92 }), partition: std('#fbfbfa'), white: std(P.white),
     accent: std(P.accent), slate: std(P.slate), voidSlate: std(P.voidSlate || '#4f5a66', { roughness: 0.9 }), louver: std(P.louver, { roughness: 0.6 }),
     band: std(P.accent), frame: std(P.white, { roughness: 0.5 }),
     glass: std(P.glass, { roughness: 0.08, metalness: 0.15, transparent: true, opacity: 0.72 }),
     rail: std(P.metal, { roughness: 0.4, metalness: 0.4 }), metal: std(P.metal, { roughness: 0.4, metalness: 0.4 }),
-    stone: std('#ffffff', { roughness: 1, map: stoneTexture(P.stone) }), wood: std(P.wood, { roughness: 0.8 }), stair: std(P.wood, { roughness: 0.7 }),
+    stone: std('#ffffff', { roughness: 1, map: stoneTexture(P.stone) }), wood: std(P.wood, { roughness: 0.8 }), stair: std(P.stairWood || P.wood, { roughness: 0.7 }),
     dark: std(P.dark, { roughness: 0.6 }), fascia: std(P.roofFascia || P.dark, { roughness: 0.6 }),
     roofTop: std('#ffffff', { roughness: 0.6, map: seamTexture(P.roofTop || '#e3e5e6') }), metalRoof: std('#ffffff', { roughness: 0.6, map: seamTexture(P.metalRoof || '#8d9196', 0.06) }),
-    roof: std(P.roofUnder), roofUnder: std(P.roofUnder), plinth: std(P.plinth, { roughness: 1 }),
+    roof: std(P.roofUnder), roofUnder: std(P.roofUnder), plinth: std(P.plinth, { roughness: 1 }), concrete: std(P.concrete || '#a3a5a6', { roughness: 1 }),
+    breeze: std('#ffffff', { roughness: 1, map: breezeTexture(P.concrete || '#a3a5a6') }),
+    bronzeGlass: std(P.bronze || '#8b5a2b', { roughness: 0.3, transparent: true, opacity: 0.6 }),
+    tintGlass: std(P.canopy || '#2a2d30', { roughness: 0.3, transparent: true, opacity: 0.75 }),
+    shrub: std('#4f8a3c', { roughness: 1 }), tank: std('#c9c4b8', { roughness: 0.5 }), pipe: std('#2f6fb3', { roughness: 0.5 }),
+    gold: std('#c9a23a', { roughness: 0.4, metalness: 0.5 }), shrineRed: std('#a8322d', { roughness: 0.6 }),
     lawn: std('#6aa84f', { roughness: 1 }), road: std('#8a8d90', { roughness: 1 }), column: std('#e9eaeb'),
   });
+}
+function breezeTexture(base) {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const g = c.getContext('2d'); g.fillStyle = base; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#4a4c4d'; for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { g.fillRect(6 + i * 32, 6 + j * 32, 20, 20); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(25, 4); return t;
 }
 function seamTexture(base, step = 0.5) {
   const c = document.createElement('canvas'); c.width = 64; c.height = 64;
@@ -93,8 +104,9 @@ export function buildHouse(data) {
   site.add(Object.assign(bb(3.07, 0, 1.97, 14.38, 0.30, 8.93, MAT.plinth), { name: 'plinth' }));
   site.add(bb(0.97, 0, 3.07, 3.10, 0.30, 6.33, MAT.plinth));
   const boundary = new THREE.Group(); boundary.name = 'boundary'; site.add(boundary);
-  boundary.add(bb(0, 0, 0, 0.12, 1.5, lot.depth, MAT.wall));
-  boundary.add(bb(0, 0, 0, lot.width, 1.8, 0.12, MAT.wall));
+  boundary.add(bb(0, 0, 0, 0.12, 1.8, lot.depth, MAT.breeze));
+  boundary.add(bb(0, 0, 0, lot.width, 1.8, 0.12, MAT.concrete));
+  boundary.add(bb(lot.width - 0.12, 0, 0, lot.width, 1.8, 2.7, MAT.concrete));
 
   for (const lv of data.levels) {
     const g = tag(new THREE.Group(), lv.id); g.name = 'floor-' + lv.id; root.add(g);
@@ -178,8 +190,11 @@ export function buildHouse(data) {
     if (lv.id > 1) {
       for (const s of merged.filter(s => s.ext)) {
         const sign = isIn(s.A) ? 1 : -1, off = s.c + sign * 0.12;
-        if (s.axis === 'x') g.add(bb(s.a0 - 0.12, y0 - 0.32, off - 0.03, s.a1 + 0.12, y0 + 0.02, off + 0.03, MAT.band));
-        else g.add(bb(off - 0.03, y0 - 0.32, s.a0 - 0.12, off + 0.03, y0 + 0.02, s.a1 + 0.12, MAT.band));
+        const side = s.axis === 'x' ? (sign > 0 ? 'front' : 'back') : (sign > 0 ? 'right' : 'left');
+        const br = (facade.bandColors || []).find(r => r.side === side && r.floors.includes(lv.id));
+        const bm = br ? (MAT[br.color] || MAT.band) : MAT.band;
+        if (s.axis === 'x') g.add(bb(s.a0 - 0.12, y0 - 0.32, off - 0.03, s.a1 + 0.12, y0 + 0.02, off + 0.03, bm));
+        else g.add(bb(off - 0.03, y0 - 0.32, s.a0 - 0.12, off + 0.03, y0 + 0.02, s.a1 + 0.12, bm));
       }
       for (const r of rooms.filter(r => r.kind === 'balcony')) {
         const [x0, z0, x1, z1] = r.rect;
@@ -203,7 +218,10 @@ export function buildHouse(data) {
     const ops = facade.openings.filter(o => o.floor === floor &&
       ((s.axis === 'x' && o.wall.z !== undefined && Math.abs(o.wall.z - c) < 1e-3) || (s.axis === 'z' && o.wall.x !== undefined && Math.abs(o.wall.x - c) < 1e-3)) &&
       o.from >= s.a0 - 1e-3 && o.to <= s.a1 + 1e-3).sort((a, b) => a.from - b.from);
-    const make = (a, b, ya, yb, mat = MAT.wall) => {
+    const side = s.axis === 'x' ? (outwardSign > 0 ? 'front' : 'back') : (outwardSign > 0 ? 'right' : 'left');
+    const rule = (facade.wallColors || []).find(r => r.side === side && r.floors.includes(floor));
+    const wallMat = rule ? (MAT[rule.color] || MAT.wall) : MAT.wall;
+    const make = (a, b, ya, yb, mat = wallMat) => {
       if (ya <= y0 + 1e-6 && yb >= y1 - 1e-6) planStrip(g, s.axis, c, a, b, 0.2, y0 + 1.2, PLAN_WALL);
       return s.axis === 'x' ? bb(a, ya, c - t / 2, b, yb, c + t / 2, mat) : bb(c - t / 2, ya, a, c + t / 2, yb, b, mat);
     };
@@ -224,14 +242,14 @@ export function buildHouse(data) {
     const q = (a, b, yA, yB, d0, d1, mat) => (axis === 'x' ? bb(a, yA, c + d0, b, yB, c + d1, mat) : bb(c + d0, yA, a, c + d1, yB, b, mat));
     const dd = (u, v) => (sign > 0 ? [u, v] : [-v, -u]);
     const gl = q(a0, b1(a1), ya, yb, -0.02, 0.02, MAT.glass); gl.castShadow = false; gl.name = 'glass:' + o.id; g.add(gl);
-    const f = 0.09, [p0, p1] = dd(0.0, 0.14);
-    g.add(q(a0, a1, yb - f, yb, p0, p1, MAT.frame));
-    g.add(q(a0, a1, ya, ya + f, p0, p1, MAT.frame));
-    g.add(q(a0, a0 + f, ya, yb, p0, p1, MAT.frame));
-    g.add(q(a1 - f, a1, ya, yb, p0, p1, MAT.frame));
+    const f = 0.09, [p0, p1] = dd(0.0, 0.14), FR = MAT[o.frameColor] || MAT.frame;
+    g.add(q(a0, a1, yb - f, yb, p0, p1, FR));
+    g.add(q(a0, a1, ya, ya + f, p0, p1, FR));
+    g.add(q(a0, a0 + f, ya, yb, p0, p1, FR));
+    g.add(q(a1 - f, a1, ya, yb, p0, p1, FR));
     const n = o.panes || 1;
-    for (let i = 1; i < n; i++) { const m = a0 + (a1 - a0) * i / n; g.add(q(m - 0.03, m + 0.03, ya, yb, p0 * 0.6, p1 * 0.6, MAT.frame)); }
-    if (o.type === 'window' && yb - ya > 1.6 && n > 1) { const tr = yb - 0.45; g.add(q(a0, a1, tr - 0.03, tr + 0.03, p0 * 0.6, p1 * 0.6, MAT.frame)); }
+    for (let i = 1; i < n; i++) { const m = a0 + (a1 - a0) * i / n; g.add(q(m - 0.03, m + 0.03, ya, yb, p0 * 0.6, p1 * 0.6, FR)); }
+    if (o.type === 'window' && yb - ya > 1.6 && n > 1) { const tr = yb - 0.45; g.add(q(a0, a1, tr - 0.03, tr + 0.03, p0 * 0.6, p1 * 0.6, FR)); }
     if (o.deepFrame) {
       const e = 0.16, [d0, d1] = dd(0.0, 0.32);
       g.add(q(a0 - e, a1 + e, yb, yb + e, d0, d1, MAT.frame));
@@ -265,6 +283,22 @@ export function buildHouse(data) {
       }
       continue;
     }
+    if (F.type === 'shrubs') { const g2 = floorGroups[1]; for (const [x, z, r] of F.points) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), MAT.shrub); m.position.set(x, (F.y ?? 0) + r * 0.8, z); m.castShadow = true; g2.add(m); } continue; }
+    if (F.type === 'cylinder') { const m = new THREE.Mesh(new THREE.CylinderGeometry(F.r, F.r, F.h, 20), fmat(F.color)); m.position.set(F.x, (F.y0 ?? 0) + F.h / 2, F.z); m.castShadow = true; if (F.note) m.name = F.note; groupFor(floorOfY(F.y0 ?? 0)).add(m); continue; }
+    if (F.type === 'spirit') {
+      const g2 = floorGroups[1], sp = new THREE.Group(); sp.name = 'ศาลพระภูมิ'; sp.position.set(F.x, 0, F.z);
+      sp.add(box(0.35, 1.3, 0.35, MAT.white, 0, 0.65, 0)); sp.add(box(0.8, 0.06, 0.8, MAT.white, 0, 1.33, 0));
+      sp.add(box(0.5, 0.45, 0.5, MAT.gold, 0, 1.58, 0));
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.45, 4), MAT.shrineRed); roof.rotation.y = Math.PI / 4; roof.position.y = 2.03; sp.add(roof);
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.35, 8), MAT.gold); spire.position.y = 2.42; sp.add(spire);
+      g2.add(sp); continue;
+    }
+    if (F.type === 'leanto') {
+      const m = fmat(F.color), L = Math.hypot(F.zHigh - F.zLow, F.yHigh - F.yLow), ang = Math.atan2(F.yHigh - F.yLow, F.zHigh - F.zLow);
+      const sl = box(F.x1 - F.x0, 0.05, L, m, (F.x0 + F.x1) / 2, (F.yHigh + F.yLow) / 2, (F.zHigh + F.zLow) / 2); sl.rotation.x = -ang; sl.name = F.note || 'lean-to'; floorGroups[1].add(sl);
+      for (const x of F.posts || []) floorGroups[1].add(bb(x - 0.04, 0, F.zLow + 0.02, x + 0.04, F.yLow, F.zLow + 0.1, MAT.white));
+      continue;
+    }
     const grp = groupFor(floorOfY(F.y0 ?? F.box?.[1] ?? 0));
     const P = F.plane, mat = fmat(F.color);
     // q(a range, y range, depth range from c)
@@ -290,6 +324,10 @@ export function buildHouse(data) {
       for (let a = F.a0; a + F.w <= F.a1 + 1e-6; a += F.spacing) grp.add(q(a, a + F.w, F.y0, F.y1, -d / 2, d / 2));
       grp.add(q(F.a0, F.a1, F.y1 - 0.05, F.y1, -d / 2, d / 2));
       grp.add(q(F.a0, F.a1, F.y0, F.y0 + 0.05, -d / 2, d / 2));
+    } else if (F.type === 'hslats') {
+      const d = F.depth ?? 0.05, h = F.h ?? 0.07;
+      for (let y = F.y0; y + h <= F.y1 + 1e-6; y += F.spacing) grp.add(q(F.a0, F.a1, y, y + h, -d / 2, d / 2));
+      grp.add(q(F.a0, F.a0 + 0.06, F.y0, F.y1, -d, d)); grp.add(q(F.a1 - 0.06, F.a1, F.y0, F.y1, -d, d));
     } else if (F.type === 'pergola') {
       const [x0, y0, z0, x1, y1, z1] = F.box; const g2 = groupFor(floorOfY(y0));
       g2.add(bb(x0, y0, z0, x1, y1, z0 + 0.12, mat)); g2.add(bb(x0, y0, z1 - 0.12, x1, y1, z1, mat));
@@ -314,7 +352,7 @@ export function buildHouse(data) {
   // ---------- columns, carport, cars (hidden by default) ----------
   const f1 = floorGroups[1];
   const col = (x, z, y1 = 3.45) => f1.add(bb(x - 0.12, 0, z - 0.12, x + 0.12, y1, z + 0.12, MAT.column));
-  col(10.60, 8.78); col(17.23, 8.78); col(17.23, 2.12); col(20.15, 9.75, 3.3); col(20.15, 2.95, 3.3);
+  col(10.60, 8.78); col(17.23, 8.78); col(17.23, 2.12); 
   const cars = new THREE.Group(); cars.name = 'cars'; cars.visible = false; cars.userData.floor = 1;
   const car = (x, color) => {
     const c = new THREE.Group();
@@ -325,8 +363,8 @@ export function buildHouse(data) {
   };
   cars.add(car(15.85, 0xbfc3c7)); cars.add(car(18.85, 0x2f7fc1));
   f1.add(cars);
-  boundary.add(bb(3.10, 0, 0.12, 3.20, 1.8, 2.0, MAT.wall));
-  boundary.add(bb(10.70, 0, 0.12, 10.80, 1.8, 2.0, MAT.wall));
+  boundary.add(bb(3.10, 0, 0.12, 3.20, 1.8, 2.0, MAT.concrete));
+  boundary.add(bb(10.70, 0, 0.12, 10.80, 1.8, 2.0, MAT.concrete));
 
   // ---------- main mono-pitch roof: thin slab, dark edge, light underside, clerestory gap ----------
   const rf = data.roof; const [rx0, rz0, rx1, rz1] = rf.rect;
@@ -338,10 +376,10 @@ export function buildHouse(data) {
   roofPivot.rotation.x = rf.highSide === 'front' ? -ang : ang;
   const slab = box(W, 0.12, D, [MAT.roofUnder, MAT.roofUnder, MAT.roofTop, MAT.roofUnder, MAT.roofUnder, MAT.roofUnder], 0, 0, 0);
   { const t = MAT.roofTop.map; t.repeat.set(W / t.userData.step, 1); } slab.name = 'roof-slab'; roofPivot.add(slab);
-  roofPivot.add(box(W + 0.06, 0.22, 0.06, MAT.fascia, 0, 0.02, D / 2));
-  roofPivot.add(box(W + 0.06, 0.22, 0.06, MAT.fascia, 0, 0.02, -D / 2));
-  roofPivot.add(box(0.06, 0.22, D, MAT.fascia, W / 2, 0.02, 0));
-  roofPivot.add(box(0.06, 0.22, D, MAT.fascia, -W / 2, 0.02, 0));
+  roofPivot.add(box(W + 0.06, 0.32, 0.06, MAT.fascia, 0, -0.03, D / 2));
+  roofPivot.add(box(W + 0.06, 0.32, 0.06, MAT.fascia, 0, -0.03, -D / 2));
+  roofPivot.add(box(0.06, 0.32, D, MAT.fascia, W / 2, -0.03, 0));
+  roofPivot.add(box(0.06, 0.32, D, MAT.fascia, -W / 2, -0.03, 0));
   roofGroup.add(roofPivot);
   roofPivot.traverse(o => { if (o.isMesh && o.parent === roofPivot) o.castShadow = false; });
   // fill between floor-3 wall top (+9.20) and the sloped roof underside; thin clerestory glass strip at the high (front) side
