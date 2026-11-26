@@ -162,7 +162,7 @@ async function renderDevice(s) {
 function renderSettings() {
   $('#sysInfo').innerHTML = [
     ['แหล่งข้อมูล', ds.name], ['การเชื่อมต่อจริง', 'Modbus TCP ผ่านกล่องฮับในบ้าน (อ่านอย่างเดียว) · เร็ว ๆ นี้'],
-    ['แผงโซลาร์', `${Sim.CFG.panels} แผง · ${f2(Sim.CFG.pv_kwp)} kWp`], ['สตริง', Sim.PV_STRINGS.filter(x => x.n).map(x => `${x.id} ${x.brand} ${x.w}W×${x.n}`).join(' · ') + ' · PV4 ไม่ได้ใช้'], ['ทิศบ้านในโมเดล', 'สมมติหน้าบ้านหันทิศใต้'],
+    ['แผงโซลาร์', `${Sim.CFG.panels} แผง · ${f2(Sim.CFG.pv_kwp)} kWp`], ['สตริง', Sim.PV_STRINGS.filter(x => x.n).map(x => `${x.id} ${x.brand} ${x.w}W×${x.n}`).join(' · ') + ' · PV4 ไม่ได้ใช้'], ['ทิศบ้านในโมเดล', 'หน้าบ้านหันทิศ NNE (~30°) · แกนยาว WNW–ESE'],
     ['โมเดลบ้าน', 'ร่างแรกจากแบบ · ตำแหน่งอุปกรณ์เป็นตัวอย่าง'], ['เวอร์ชัน', 'v2 · ต้นแบบหน้าจอ'],
   ].map(([k, v]) => `<div><b style="font-weight:500">${k}</b><span>${v}</span></div>`).join('');
 }

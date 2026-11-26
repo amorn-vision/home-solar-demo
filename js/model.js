@@ -76,7 +76,14 @@ function solarTexture(style = 'jinko', landscape = false) {
   const W = 128, H = 256, c = document.createElement('canvas'); c.width = landscape ? H : W; c.height = landscape ? W : H;
   const g = c.getContext('2d');
   if (landscape) { g.translate(H, 0); g.rotate(Math.PI / 2); }
-  if (style === 'aiko') {
+  if (style === 'jinko-black') {
+    g.fillStyle = '#14171c'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#262b33'; g.lineWidth = 1.2;
+    for (let i = 1; i < 6; i++) { g.beginPath(); g.moveTo(i * W / 6, 0); g.lineTo(i * W / 6, H); g.stroke(); }
+    for (let j = 1; j < 24; j++) { g.beginPath(); g.moveTo(0, j * H / 24); g.lineTo(W, j * H / 24); g.stroke(); }
+    g.strokeStyle = '#3a414c'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke();
+    g.strokeStyle = '#8d939b'; g.lineWidth = 4; g.strokeRect(0, 0, W, H);
+  } else if (style === 'aiko') {
     g.fillStyle = '#0b0c0e'; g.fillRect(0, 0, W, H);
     g.strokeStyle = '#15171a'; g.lineWidth = 1;
     for (let j = 1; j < 24; j++) { g.beginPath(); g.moveTo(0, j * H / 24); g.lineTo(W, j * H / 24); g.stroke(); }
@@ -390,6 +397,13 @@ export function buildHouse(data) {
   roofPivot.add(box(W + 0.06, 0.32, 0.06, MAT.fascia, 0, -0.03, -D / 2));
   roofPivot.add(box(0.06, 0.32, D, MAT.fascia, W / 2, -0.03, 0));
   roofPivot.add(box(0.06, 0.32, D, MAT.fascia, -W / 2, -0.03, 0));
+  for (const st of rf.steps || []) {
+    const ext = st.extendBack, cx = (st.fromX + st.toX) / 2 - (rx0 + rx1) / 2, w = st.toX - st.fromX;
+    const zc = -D / 2 - ext / 2 + 0.03;
+    const e = box(w, 0.12, ext + 0.06, [MAT.roofUnder, MAT.roofUnder, MAT.roofTop, MAT.roofUnder, MAT.roofUnder, MAT.roofUnder], cx, 0, zc); e.name = 'roof-step'; roofPivot.add(e);
+    roofPivot.add(box(w + 0.06, 0.32, 0.06, MAT.fascia, cx, -0.03, -D / 2 - ext));
+    roofPivot.add(box(0.06, 0.32, ext, MAT.fascia, cx + w / 2, -0.03, zc));
+  }
   roofGroup.add(roofPivot);
   roofPivot.traverse(o => { if (o.isMesh && o.parent === roofPivot) o.castShadow = false; });
   // fill between floor-3 wall top (+9.20) and the sloped roof underside; thin clerestory glass strip at the high (front) side
@@ -445,4 +459,10 @@ export function buildHouse(data) {
   roofGroup.userData.solar = solar;
 
   return { root, pickables, floorGroups, roofGroup, roomMeshes, solar, cars, boundary, planWalls };
+}
+
+/** Direction (local model coords) of a compass azimuth/elevation. Local +z = house front (road) at frontAz; local +x = frontAz-90. */
+export function localDir(azDeg, elDeg, frontAz = 30) {
+  const d = (azDeg - frontAz) * Math.PI / 180, e = elDeg * Math.PI / 180;
+  return new THREE.Vector3(-Math.sin(d) * Math.cos(e), Math.sin(e), Math.cos(d) * Math.cos(e));
 }

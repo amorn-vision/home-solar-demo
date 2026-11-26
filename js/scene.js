@@ -5,11 +5,12 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/CSS2DRenderer.js';
 import { buildHouse } from './model.js';
 import { sunPos, sunTimes, bkk } from './sim.js';
 
-// Assumption: house front (road, +z) faces SOUTH → +x = east, -z = north. Change FRONT_AZ if the real orientation differs.
-const FRONT_AZ = 180;
+// House front (road, local +z) azimuth from house.json site.frontAzimuthDeg (real: ~30° NNE per pre-install PV designer). Sun = NOAA-style calc in sim.js.
+let FRONT_AZ = 30;
 
 export async function createScene(el) {
   const data = await (await fetch('./data/house.json')).json();
+  FRONT_AZ = data.site?.frontAzimuthDeg ?? 30;
   const C = new THREE.Vector3(data.meta.lot.width / 2, 5.5, data.meta.lot.depth / 2);
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -58,8 +59,16 @@ export async function createScene(el) {
   const arcGroup = new THREE.Group(); scene.add(arcGroup);
   const R = 19, ORIGIN = new THREE.Vector3(C.x, 0, C.z);
   const dirOf = (az, el) => { const a = (az - FRONT_AZ + 180) * Math.PI / 180, e = el * Math.PI / 180;
-    // world: north = -z when FRONT_AZ=180
     return new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e)); };
+  { // true-north marker (ground arrow + N label)
+    const n = dirOf(0, 0), g = new THREE.Group();
+    const sh = new THREE.Shape(); sh.moveTo(0, 1.6); sh.lineTo(0.7, -0.9); sh.lineTo(0, -0.4); sh.lineTo(-0.7, -0.9); sh.closePath();
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({ color: 0xd32f2f, side: THREE.DoubleSide }));
+    m.rotation.x = -Math.PI / 2; m.rotation.z = Math.atan2(-n.x, -n.z); g.add(m);
+    const d = document.createElement('div'); d.textContent = 'N'; d.style.cssText = 'font:700 12px system-ui;color:#d32f2f;background:#fff;border-radius:9px;padding:1px 5px';
+    const l = new CSS2DObject(d); l.position.set(n.x * 2.4, 0.2, n.z * 2.4); g.add(l);
+    g.position.set(-3.2, 0.05, C.z + 4); scene.add(g);
+  }
   const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.1, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffb300 }));
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const r = x.createRadialGradient(32, 32, 4, 32, 32, 32); r.addColorStop(0, 'rgba(255,200,80,.9)'); r.addColorStop(1, 'rgba(255,170,40,0)'); x.fillStyle = r; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })(), depthWrite: false, fog: false }));
   glow.scale.set(7, 7, 1); sunMesh.add(glow); scene.add(sunMesh);
