@@ -393,7 +393,7 @@ export function buildHouse(data) {
   roofPivot.rotation.x = rf.highSide === 'front' ? -ang : ang;
   // optional notch: rectangle cut from the FRONT (+z, street) corner at the low-x (ESE / street-view left) end
   const nt = rf.notch && rf.notch.width > 0 ? rf.notch : null;
-  const nw = nt ? nt.width : 0, nd = nt ? nt.depth : 0;
+  const nw = nt ? nt.width : 0, nd = nt ? nt.depth * D / depth : 0; // notch depth given in plan → along slope
   const RMAT = m => [MAT.roofUnder, MAT.roofUnder, m, MAT.roofUnder, MAT.roofUnder, MAT.roofUnder];
   const slab = box(W - nw, 0.12, D, RMAT(MAT.roofTop), nw / 2, 0, 0);
   { const t = MAT.roofTop.map; t.repeat.set((W - nw) / t.userData.step, 1); } slab.name = 'roof-slab'; roofPivot.add(slab);
@@ -456,6 +456,7 @@ export function buildHouse(data) {
     grp.userData = { pick: 'solar', floor: 4, string: st.id, label: st.label };
     let n = 0;
     for (let r = st.rows - 1; r >= 0 && n < st.count; r--) for (let c = 0; c < st.cols && n < st.count; c++) {
+      if (st.colRows && r >= st.colRows[c]) continue; // per-column row count, back-aligned (r=0 = back row)
       const x = xCur + c * (dm.px + pg) + dm.px / 2;
       const z = (st.offset || 0) + (st.colOffsets?.[c] || 0) - dm.wz / 2 + r * (dm.pz + pg) + dm.pz / 2;
       const p = new THREE.Mesh(new THREE.BoxGeometry(dm.px, 0.04, dm.pz), mat);
