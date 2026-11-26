@@ -451,6 +451,7 @@ export function buildHouse(data) {
     rim: new THREE.MeshStandardMaterial({ color: 0x1e2023, roughness: 0.18, metalness: 0.55 }), // gloss-black alloy wheels
     chrome: new THREE.MeshStandardMaterial({ color: 0xc8ccd1, roughness: 0.25, metalness: 0.9 }),
     trim: new THREE.MeshStandardMaterial({ color: 0x1c1d1f, roughness: 0.6 }),
+    well: new THREE.MeshStandardMaterial({ color: 0x0c0d0e, roughness: 0.95, side: THREE.DoubleSide }),
     face: new THREE.MeshStandardMaterial({ color: 0xd6dadf, roughness: 0.35, metalness: 0.35 }), // machined silver wheel faces (ATTO 3)
     head: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xe8f2ff, emissiveIntensity: 0.6, roughness: 0.2 }),
     tail: new THREE.MeshStandardMaterial({ color: 0xb3121a, emissive: 0x9a0d12, emissiveIntensity: 0.5, roughness: 0.3 }),
@@ -465,98 +466,150 @@ export function buildHouse(data) {
   const extr = (pts, w, z0 = 0) => { const sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))); const g = new THREE.ExtrudeGeometry(sh, { depth: w - 0.06, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 1, curveSegments: 1 }); g.translate(0, 0, -(w - 0.06) / 2 + z0); return g; };
   const bx = (sx, sy, sz, x, y, z) => new THREE.BoxGeometry(sx, sy, sz).translate(x, y, z);
   // spec: {model, kind:'mpv'|'suv', L, W, H, wb, x, z}; local: +x = car front, +z = car right (RHD cars); parked nose-out (front → street, +z)
-  const tumble = (geo, belt, H, amt = 0.13) => { const a = geo.attributes.position; for (let i = 0; i < a.count; i++) { const k = Math.max(0, Math.min(1, (a.getY(i) - belt) / (H - belt))); a.setZ(i, a.getZ(i) * (1 - amt * k)); } return geo; };
+  // ---- smooth lofted car bodies (v0.10.7) ----
+  const spline = tab => x => { // Hermite spline through [x, v] points (finite-difference tangents)
+    const n = tab.length; if (x <= tab[0][0]) return tab[0][1]; if (x >= tab[n - 1][0]) return tab[n - 1][1];
+    let i = 0; while (x > tab[i + 1][0]) i++;
+    const m = k => (k <= 0 ? (tab[1][1] - tab[0][1]) / (tab[1][0] - tab[0][0]) : k >= n - 1 ? (tab[n - 1][1] - tab[n - 2][1]) / (tab[n - 1][0] - tab[n - 2][0]) : (tab[k + 1][1] - tab[k - 1][1]) / (tab[k + 1][0] - tab[k - 1][0]));
+    const [x0, y0] = tab[i], [x1, y1] = tab[i + 1], h = x1 - x0, t = (x - x0) / h, t2 = t * t, t3 = t2 * t;
+    return (2 * t3 - 3 * t2 + 1) * y0 + (t3 - 2 * t2 + t) * h * m(i) + (-2 * t3 + 3 * t2) * y1 + (t3 - t2) * h * m(i + 1);
+  };
+  const orient = (g, probe, dir) => { // make winding face outward (dir = expected normal at vertex `probe`)
+    g.computeVertexNormals(); const n = g.attributes.normal;
+    if (n.getX(probe) * dir[0] + n.getY(probe) * dir[1] + n.getZ(probe) * dir[2] < 0) { const ix = g.index.array; for (let i = 0; i < ix.length; i += 3) { const t = ix[i + 1]; ix[i + 1] = ix[i + 2]; ix[i + 2] = t; } g.computeVertexNormals(); }
+    return g;
+  };
+  const loftGeo = (rings, closed) => {
+    const m = rings[0].length, pos = [], idx = []; for (const r of rings) for (const p of r) pos.push(p[0], p[1], p[2]);
+    for (let i = 0; i < rings.length - 1; i++) for (let j = 0; j < (closed ? m : m - 1); j++) { const a = i * m + j, b = i * m + (j + 1) % m, c2 = a + m, d = b + m; idx.push(a, c2, b, b, c2, d); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); return g;
+  };
+  const capGeo = (ring, sx) => { // fan cap; faces +x (sx=1) or -x (sx=-1)
+    const c0 = ring.reduce((a, p) => [a[0] + p[0] / ring.length, a[1] + p[1] / ring.length, a[2] + p[2] / ring.length], [0, 0, 0]);
+    const pos = [...c0], idx = []; for (const p of ring) pos.push(...p);
+    for (let j = 0; j < ring.length; j++) idx.push(0, 1 + j, 1 + (j + 1) % ring.length);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); return orient(g, 0, [sx, 0, 0]);
+  };
+  const tube = (pts, r, seg = 20) => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p))), seg, r, 4, false);
+  const cosSpace = (a, b, n) => Array.from({ length: n + 1 }, (_, i) => a + (b - a) * (0.5 - 0.5 * Math.cos(Math.PI * i / n)));
+  const CAR_SHAPES = {
+    // BYD M6: long low sloping nose + raked screen in one line, long flat roof, near-vertical hatch
+    mpv: hl => ({
+      y0: [[-hl, 0.37], [-hl + 0.1, 0.32], [-hl + 0.35, 0.3], [hl - 0.35, 0.3], [hl - 0.1, 0.32], [hl, 0.36]],
+      y1: [[-hl, 0.88], [-hl + 0.05, 0.94], [-hl + 0.16, 0.98], [-1.0, 1.0], [0.4, 1.01], [0.95, 1.0], [1.3, 0.97], [1.8, 0.9], [hl - 0.2, 0.8], [hl - 0.06, 0.7], [hl, 0.64]],
+      w: [[-hl, 0.74], [-hl + 0.04, 0.82], [-hl + 0.16, 0.875], [-1.8, 0.9], [1.6, 0.905], [hl - 0.35, 0.89], [hl - 0.15, 0.85], [hl - 0.05, 0.79], [hl, 0.71]],
+      gx: [-hl + 0.085, 1.0], tum: 0.17,
+      yt: [[-hl + 0.085, 1.56], [-hl + 0.14, 1.645], [-hl + 0.35, 1.68], [-0.6, 1.69], [-0.3, 1.675], [0.0, 1.6], [0.5, 1.37], [1.0, 0.92]],
+      roof: [-hl + 0.12, -0.32],
+      wheels: [1.46, -1.34],
+    }),
+    // BYD ATTO 3: short hood, raked screen, roof sloping to the rear, window line kicking up at the C-pillar
+    suv: hl => ({
+      y0: [[-hl, 0.4], [-hl + 0.1, 0.35], [-hl + 0.33, 0.33], [hl - 0.33, 0.33], [hl - 0.1, 0.35], [hl, 0.38]],
+      y1: [[-hl, 0.92], [-hl + 0.06, 1.02], [-hl + 0.22, 1.1], [-1.75, 1.1], [-1.35, 1.03], [0.0, 1.0], [0.75, 0.99], [1.2, 0.95], [1.7, 0.88], [hl - 0.17, 0.8], [hl - 0.05, 0.73], [hl, 0.68]],
+      w: [[-hl, 0.78], [-hl + 0.04, 0.86], [-hl + 0.18, 0.91], [-1.7, 0.93], [1.5, 0.9375], [hl - 0.33, 0.92], [hl - 0.13, 0.87], [hl - 0.04, 0.8], [hl, 0.72]],
+      gx: [-hl + 0.13, 0.78], tum: 0.16,
+      yt: [[-hl + 0.13, 1.3], [-hl + 0.23, 1.47], [-hl + 0.43, 1.56], [-1.2, 1.6], [-0.5, 1.615], [-0.2, 1.6], [0.1, 1.5], [0.45, 1.25], [0.78, 0.94]],
+      roof: [-hl + 0.42, -0.18],
+      wheels: [1.39, -1.33],
+    }),
+  };
   function buildCar(c) {
-    const { L, W, H, wb } = c, hl = L / 2, mpv = c.kind === 'mpv', belt = mpv ? 1.0 : 1.0;
-    const P = { body: [], glass: [], tyre: [], rim: [], face: [], trim: [], chrome: [], head: [], tail: [] };
-    // ---- body shell (side profile extruded across the width) ----
-    const body = mpv // BYD M6: one-box-ish nose, short sloping hood, upright rear
-      ? [[-hl, 0.36], [-hl + 0.02, belt], [hl - 1.22, belt + 0.04], [hl - 0.22, 0.84], [hl - 0.02, 0.66], [hl, 0.36], [hl - 0.16, 0.22], [-hl + 0.14, 0.22]]
-      : [[-hl, 0.4], [-hl + 0.05, belt + 0.06], [hl - 1.05, belt + 0.02], [hl - 0.2, 0.9], [hl, 0.66], [hl, 0.38], [hl - 0.16, 0.24], [-hl + 0.14, 0.24]];
-    P.body.push(extr(body, W));
-    // ---- glasshouse: one continuous dark band (black pillars), tumblehome toward the roof ----
-    const ws = mpv ? hl - 1.22 : hl - 1.05; // windshield base x
-    const cab = mpv
-      ? [[-hl + 0.05, belt], [-hl + 0.1, H - 0.08], [hl - 1.95, H - 0.03], [ws, belt + 0.04]] // flat roof, slight drop at rear; steep-raked screen
-      : [[-hl + 0.12, belt + 0.06], [-hl + 0.4, H - 0.08], [hl - 1.8, H - 0.04], [ws, belt + 0.02]];
-    P.glass.push(tumble(extr(cab, W - 0.08), belt, H));
-    // roof: body-colour side rails + dark panoramic glass centre
-    const r0 = mpv ? -hl + 0.12 : -hl + 0.42, r1 = mpv ? hl - 1.95 : hl - 1.8, rw = (W - 0.08) * 0.87;
-    for (const sz of [-1, 1]) {
-      if (mpv) P.body.push(bx(r1 - r0, 0.05, 0.16, (r0 + r1) / 2, H - 0.02, sz * (rw / 2 - 0.08)));
-      else { P.body.push(bx(r1 - r0, 0.05, 0.16, (r0 + r1) / 2, H - 0.02, sz * (rw / 2 - 0.08))); P.chrome.push(bx(r1 - r0 - 0.1, 0.045, 0.04, (r0 + r1) / 2, H + 0.06, sz * (rw / 2 - 0.1))); for (const ex of [r0 + 0.08, r1 - 0.08]) P.trim.push(bx(0.08, 0.06, 0.04, ex, H + 0.025, sz * (rw / 2 - 0.1))); } // ATTO 3: silver roof rails
+    const { L, W } = c, hl = L / 2, mpv = c.kind === 'mpv', S = CAR_SHAPES[mpv ? 'mpv' : 'suv'](hl);
+    const Y0 = spline(S.y0), Y1 = spline(S.y1), WW = spline(S.w), YT = spline(S.yt), WR = 0.345, AR = 0.4;
+    const P = { body: [], glass: [], tyre: [], rim: [], face: [], trim: [], well: [], chrome: [], head: [], tail: [] };
+    const RT = 0.14, RB = 0.08, BULGE = 0.03, CROWN = 0.02;
+    const y0At = x => { let y = Y0(x); for (const wx of S.wheels) { const d = x - wx; if (Math.abs(d) < AR) y = Math.max(y, WR + Math.sqrt(AR * AR - d * d)); } return y; };
+    const bodyHalf = x => { // right half section [z, y]: bottom centre → side → top centre
+      const y0 = y0At(x), y1 = Y1(x), w = WW(x), zc = w - BULGE, pts = [[0, y0], [(zc - RB) * 0.5, y0]];
+      for (const a of [-Math.PI / 2, -Math.PI / 4, 0]) pts.push([zc - RB + RB * Math.cos(a), y0 + RB + RB * Math.sin(a)]);
+      for (const s of [0.25, 0.5, 0.75]) pts.push([zc + BULGE * Math.sin(Math.PI * s), y0 + RB + (y1 - RT - y0 - RB) * s]);
+      for (const a of [0, Math.PI / 4, Math.PI / 2]) pts.push([zc - RT + RT * Math.cos(a), y1 - RT + RT * Math.sin(a)]);
+      pts.push([(zc - RT) * 0.5, y1 + CROWN * 0.75], [0, y1 + CROWN]); return pts;
+    };
+    const surfZ = (x, y) => { const h = bodyHalf(x); for (let i = 2; i < h.length - 1; i++) { const [za, ya] = h[i], [zb, yb] = h[i + 1]; if (yb > ya && y >= ya && y <= yb) return za + (zb - za) * (y - ya) / (yb - ya); } return y < h[2][1] ? h[2][0] : h[h.length - 3][0]; };
+    // body loft (arch-dense stations so the wheel cut-outs are round)
+    let xs = cosSpace(-hl, hl, 32); for (const wx of S.wheels) for (let d = -AR - 0.01; d <= AR + 0.011; d += 0.07) xs.push(wx + d); for (const wx of S.wheels) xs.push(wx - AR + 0.004, wx + AR - 0.004);
+    xs = [...new Set(xs.map(v => Math.round(v * 1000) / 1000))].filter(v => v >= -hl && v <= hl).sort((a, b) => a - b);
+    const rings = xs.map(x => { const h = bodyHalf(x); return h.concat(h.slice(1, -1).reverse().map(([z, y]) => [-z, y])).map(([z, y]) => [x, y, z]); });
+    const mid = Math.floor(rings.length / 2); P.body.push(orient(loftGeo(rings, true), mid * rings[0].length + 6, [0, 0, 1]), capGeo(rings[0], -1), capGeo(rings[rings.length - 1], 1));
+    // glasshouse: one smooth inset band, tapering inward (tumblehome), blue-grey glass
+    const [gx0, gx1] = S.gx, gh = x => { const yb = Y1(x) - 0.08, yt = Math.max(yb, YT(x)), wb = WW(x) - 0.06, wr = wb - S.tum, rr = Math.min(0.07, (yt - yb) * 0.45); return { yb, yt, wb, wr, rr }; };
+    const ghHalf = x => { const { yb, yt, wb, wr, rr } = gh(x); const p = [[wb, yb], [(wb + wr) / 2, (yb + yt - rr) / 2]]; for (const a of [0, Math.PI / 4, Math.PI / 2]) p.push([wr - rr + rr * Math.cos(a), yt - rr + rr * Math.sin(a)]); p.push([(wr - rr) * 0.5, yt + CROWN * 0.75], [0, yt + CROWN]); return p; };
+    const gxs = cosSpace(gx0, gx1, 26), grings = gxs.map(x => { const h = ghHalf(x); return h.map(([z, y]) => [x, y, -z]).concat(h.slice(0, -1).reverse().map(([z, y]) => [x, y, z])); });
+    P.glass.push(orient(loftGeo(grings, false), 10 * grings[0].length + grings[0].length - 2, [0, 0, 1]), capGeo(grings[0], -1));
+    const ghPt = (x, t, side, off = 0.004) => { const { yb, yt, wb, wr, rr } = gh(x); return [x, yb + (yt - rr - yb) * t, side * (wb + (wr - wb) * t + off)]; };
+    const ghT = (x, y) => { const { yb, yt, rr } = gh(x); return (y - yb) / Math.max(0.01, yt - rr - yb); };
+    const patch = (xa, xb, ta, tb, side, arr, nx = 3, ny = 3, off = 0.005) => { const rs = []; for (let i = 0; i <= nx; i++) { const x = xa + (xb - xa) * i / nx, r = []; for (let j = 0; j <= ny; j++) r.push(ghPt(x, ta + (tb - ta) * j / ny, side, off)); rs.push(r); } arr.push(orient(loftGeo(rs, false), 0, [0, 0, side])); };
+    // roof skin in body colour (reads as a car from above); M6: dark panoramic glass over the front + black split
+    const roofSkin = (xa, xb, f, off, arr) => { const rs = cosSpace(xa, xb, 14).map(x => { const { yt, wr, rr } = gh(x), hw = (wr - rr) * f; return Array.from({ length: 7 }, (_, k) => { const z = hw * (-1 + k / 3); return [x, yt + CROWN * (1 - (z / (wr - rr)) ** 2) + off, z]; }); }); arr.push(orient(loftGeo(rs, false), 3, [0, 1, 0])); };
+    const [rx0, rx1] = S.roof; roofSkin(rx0, rx1, 1.06, 0.006, P.body);
+    if (mpv) { const px = rx0 + (rx1 - rx0) * 0.42; roofSkin(px + 0.07, rx1 - 0.04, 0.78, 0.014, P.glass); roofSkin(px, px + 0.07, 0.8, 0.013, P.trim); }
+    else { // silver roof rails + shark fin
+      for (const sd of [-1, 1]) { const pts = cosSpace(rx0 + 0.05, rx1 - 0.05, 6).map(x => { const { yt, wr, rr } = gh(x); return [x, yt + 0.055, sd * (wr - rr - 0.07)]; }); P.chrome.push(tube(pts, 0.018, 16)); for (const k of [0, 6]) P.trim.push(bx(0.07, 0.06, 0.04, pts[k][0], pts[k][1] - 0.03, pts[k][2])); }
+      P.trim.push(extr([[rx0 + 0.05, 0], [rx0 + 0.25, 0], [rx0 + 0.09, 0.075]], 0.08).translate(0, gh(rx0 + 0.15).yt + CROWN - 0.01, 0));
     }
-    if (!mpv) for (const sz of [-1, 1]) P.body.push(new THREE.ExtrudeGeometry(new THREE.Shape([[-hl + 0.1, belt + 0.06], [-0.75, belt + 0.02], [-0.75, belt + 0.04], [-hl + 0.3, belt + 0.24], [-hl + 0.16, belt + 0.26]].map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.02, bevelEnabled: false }).translate(0, 0, sz > 0 ? W / 2 - 0.075 : -W / 2 + 0.055)); // ATTO 3: window line kicks up at the rear
-    if (!mpv) P.trim.push(extr([[-hl + 0.5, H], [-hl + 0.72, H], [-hl + 0.56, H + 0.08]], 0.09)); // shark-fin antenna
-    P.body.push(bx(r1 - r0 + 0.04, 0.035, rw - 0.12, (r0 + r1) / 2, H - 0.01, 0)); // roof skin (body colour) so the car reads from above
-    if (mpv) { const pl = (r1 - r0) * 0.58; P.glass.push(bx(pl, 0.02, rw - 0.38, r1 - pl / 2 - 0.1, H + 0.012, 0)); P.trim.push(bx(0.07, 0.022, rw - 0.38, r1 - pl - 0.135, H + 0.012, 0)); } // M6: dark panoramic glass over the front + black split bar
-    // chrome window-line trims (top + bottom of the glass band), both sides
-    for (const sz of [-1, 1]) {
-      P.chrome.push(bx(ws - (-hl + 0.12), 0.022, 0.02, (ws - hl + 0.12) / 2, belt + 0.035, sz * (W / 2 - 0.035)));
-      P.chrome.push(bx(r1 - r0, 0.02, 0.02, (r0 + r1) / 2, H - 0.07, sz * (rw / 2 + 0.005)));
-      if (mpv) P.chrome.push(bx(L - 1.2, 0.025, 0.02, -0.1, 0.27, sz * (W / 2 + 0.012))); // sill strip
-      else { // ATTO 3: black lower sill + silver strip along the lower doors kicking up toward the rear
-        P.trim.push(bx(wb - 0.78, 0.16, 0.03, 0, 0.32, sz * (W / 2 + 0.012)));
-        P.chrome.push(bx(1.7, 0.028, 0.02, 0.2, 0.43, sz * (W / 2 + 0.016)));
-        P.chrome.push(bx(0.42, 0.028, 0.02, 0, 0, 0).rotateZ(-0.42).translate(-0.83, 0.51, sz * (W / 2 + 0.016)));
+    // roof spoiler (body colour) with black lip over the rear glass
+    { const { yt, wr } = gh(gx0 + 0.15); P.body.push(new THREE.SphereGeometry(1, 12, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(0.16, 0.035, wr - 0.02).translate(gx0 + 0.07, yt + 0.0, 0)); P.trim.push(bx(0.05, 0.02, 2 * wr - 0.25, gx0 + (mpv ? -0.04 : 0.0), yt - 0.025, 0)); }
+    // pillars (black) so the glass reads as a band with dark posts
+    const pil = mpv ? [[-0.02, 0.07], [-1.25, -1.17]] : [[-0.32, -0.25]]; for (const sd of [-1, 1]) for (const [a, b] of pil) patch(a, b, 0.02, 1.0, sd, P.trim, 1, 3);
+    for (const sd of [-1, 1]) {
+      // chrome window-line trims (M6) / silver C-pillar shark-gill panel (ATTO 3)
+      if (mpv) for (const t of [0.04, 0.985]) P.chrome.push(tube(cosSpace(gx0 + 0.04, gx1 - (t > 0.5 ? 0.12 : 0.08), 14).map(x => ghPt(x, t > 0.5 ? t : ghT(x, Y1(x) - 0.055), sd, 0.006)), 0.008, 16));
+      else {
+        patch(-1.95, -1.52, 0.02, 0.82, sd, P.chrome, 3, 3, 0.006);
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) { const p = ghPt(-1.86 + j * 0.085 - i * 0.03, 0.18 + i * 0.2 + j * 0.03, sd, 0.012); P.trim.push(bx(0.035, 0.03, 0.012, ...p)); }
       }
-      for (const hx of mpv ? [0.35, -0.75] : [0.3, -0.7]) P.chrome.push(bx(0.2, 0.03, 0.02, hx, belt - 0.07, sz * (W / 2 + 0.012))); // flush door handles
-      P.body.push(bx(0.16, 0.1, 0.2, ws + 0.05, belt + 0.12, sz * (W / 2 + 0.07))); P.trim.push(bx(0.1, 0.04, 0.12, ws + 0.06, belt + 0.05, sz * (W / 2 + 0.03))); // mirrors (body colour, black base)
+      // mirrors (body colour, black base) at the A-pillar base
+      { const x = gx1 - 0.2, y = Y1(x) + 0.07, z = sd * (surfZ(x, Y1(x) - 0.12) + 0.06); P.body.push(new THREE.SphereGeometry(1, 10, 6).scale(0.1, 0.065, 0.11).translate(x, y + 0.03, z + sd * 0.05)); P.trim.push(bx(0.08, 0.04, 0.1, x, y - 0.02, z)); }
+      // flush door handles + sill strip
+      for (const hx of mpv ? [0.3, -0.85] : [0.25, -0.75]) { const y = Y1(hx) - 0.13; P.chrome.push(bx(0.19, 0.028, 0.02, hx, y, sd * (surfZ(hx, y) + 0.004))); }
+      if (mpv) P.chrome.push(tube(cosSpace(S.wheels[1] + AR + 0.05, S.wheels[0] - AR - 0.05, 4).map(x => [x, 0.4, sd * (surfZ(x, 0.4) + 0.006)]), 0.012, 6));
+      else { // ATTO 3: black lower sill cladding + silver strip on the lower doors kicking up toward the rear
+        P.trim.push(tube(cosSpace(S.wheels[1] + AR + 0.02, S.wheels[0] - AR - 0.02, 4).map(x => [x, 0.43, sd * (surfZ(x, 0.43) - 0.015)]), 0.07, 6));
+        P.chrome.push(tube([[0.95, 0.55], [0.0, 0.55], [-0.55, 0.56], [-0.82, 0.62], [-0.95, 0.7]].map(([x, y]) => [x, y, sd * (surfZ(x, y) + 0.006)]), 0.011, 16));
+      }
     }
-    // rear: body-colour roof spoiler with black lip, full-width LED bar, BYD lettering, reflectors, chrome strip
-    const sp = mpv ? -hl + 0.2 : -hl + 0.42; P.body.push(bx(0.32, 0.06, rw, sp, H + 0.005, 0)); P.trim.push(bx(0.04, 0.025, rw - 0.05, sp - 0.16, H - 0.035, 0));
-    P.tail.push(bx(0.04, mpv ? 0.05 : 0.06, W - 0.16, -hl - 0.005, mpv ? belt + 0.02 : belt + 0.02, 0));
-    for (const sz of [-1, 1]) { P.tail.push(bx(0.04, 0.16, 0.1, -hl - 0.006, belt - 0.07, sz * (W / 2 - 0.1))); P.tail.push(bx(0.03, 0.03, 0.18, -hl - 0.006, 0.42, sz * (W / 2 - 0.2))); }
-    if (mpv) { P.chrome.push(bx(0.03, 0.05, 0.36, -hl - 0.008, belt - 0.16, 0)); P.chrome.push(bx(0.03, 0.022, W - 0.5, -hl - 0.007, 0.34, 0)); } // BYD lettering + lower chrome strip
-    else { // ATTO 3: 'BUILD YOUR DREAMS' lettering above the bar, vertical bumper reflectors, silver skid plate
-      P.chrome.push(bx(0.025, 0.03, 0.9, -hl - 0.008, belt + 0.11, 0));
-      for (const sz of [-1, 1]) P.tail.push(bx(0.03, 0.14, 0.035, -hl - 0.006, 0.43, sz * (W / 2 - 0.12)));
-      P.chrome.push(bx(0.04, 0.05, W - 0.9, -hl - 0.008, 0.25, 0));
+    // front: slim swept LED strips following the body curve, chrome bar + BYD letters, black lower grille
+    const xF = hl, fy = mpv ? 0.6 : 0.63, zE = y => surfZ(xF, y);
+    for (const sd of [-1, 1]) P.head.push(tube([[xF + 0.004, fy, sd * 0.3], [xF + 0.004, fy + 0.005, sd * (zE(fy) - 0.05)], [xF - 0.06, fy + 0.03, sd * (surfZ(xF - 0.06, fy + 0.03) + 0.004)], [xF - 0.2, fy + 0.08, sd * (surfZ(xF - 0.2, fy + 0.08) + 0.004)], [xF - 0.42, fy + 0.15, sd * (surfZ(xF - 0.42, fy + 0.15) + 0.004)]], 0.02, 18));
+    P.chrome.push(tube([[xF + 0.006, fy - 0.005, -0.3], [xF + 0.008, fy - 0.01, 0], [xF + 0.006, fy - 0.005, 0.3]], 0.011, 6)); P.chrome.push(bx(0.02, 0.04, 0.2, xF + 0.01, fy - 0.01, 0));
+    if (mpv) { P.trim.push(bx(0.03, 0.1, 0.9, xF + 0.002, 0.44, 0)); for (const sd of [-1, 1]) { P.trim.push(bx(0.03, 0.17, 0.09, xF + 0.003, 0.47, sd * 0.56)); P.chrome.push(bx(0.025, 0.02, 0.16, xF + 0.006, 0.4, sd * 0.5)); } }
+    else { // trapezoid mesh grille, plate area, body-colour chin with silver lip
+      P.trim.push(new THREE.CylinderGeometry(0.42, 0.56, 0.17, 4, 1).rotateY(Math.PI / 4).scale(0.05, 1, 1.41).translate(xF, 0.47, 0));
+      for (let i = 0; i < 3; i++) P.rim.push(bx(0.01, 0.01, 0.9 - i * 0.1, xF + 0.03, 0.42 + i * 0.05, 0));
+      P.body.push(bx(0.015, 0.1, 0.32, xF + 0.032, 0.47, 0)); P.chrome.push(bx(0.03, 0.022, 1.0, xF - 0.01, 0.37, 0));
     }
-    P.trim.push(bx(0.04, 0.12, W - 0.4, -hl - 0.004, 0.27, 0)); // rear diffuser/bumper base
-    if (!mpv) for (const sz of [-1, 1]) { // ATTO 3: silver C-pillar panel with shark-gill dot pattern
-      const cz = sz * (W / 2 - 0.1), cx0 = -hl + 0.52;
-      P.chrome.push(bx(0.4, 0.24, 0.02, 0, 0, 0).rotateZ(0.25).translate(cx0, belt + 0.3, cz));
-      for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) P.trim.push(bx(0.035, 0.035, 0.012, cx0 - 0.12 + j * 0.08 - i * 0.03, belt + 0.22 + i * 0.07 + j * 0.02, cz + sz * 0.012));
-    }
-    // front: slim swept LED lamps joined by a chrome bar with BYD letters; black lower grille; vertical 'fang' intakes
-    const fy = mpv ? 0.72 : 0.78;
-    for (const sz of [-1, 1]) {
-      P.head.push(bx(0.05, 0.055, 0.42, hl + 0.004, fy, sz * (W / 2 - 0.27))); P.head.push(bx(0.32, 0.045, 0.02, hl - 0.16, fy + 0.02, sz * (W / 2 + 0.01))); // wrap-around (swept back)
-      if (mpv) { P.trim.push(bx(0.05, 0.3, 0.13, hl + 0.004, 0.42, sz * (W / 2 - 0.16))); P.chrome.push(bx(0.04, 0.03, 0.2, hl + 0.008, 0.27, sz * (W / 2 - 0.22))); } // fangs + chrome corners
-    }
-    P.chrome.push(bx(0.03, 0.03, W - 0.95, hl + 0.006, fy, 0)); P.chrome.push(bx(0.035, 0.06, 0.26, hl + 0.01, fy, 0)); // bar + BYD letters
-    if (mpv) P.trim.push(bx(0.05, 0.14, W - 0.7, hl + 0.003, 0.36, 0)); // lower grille
-    else { // ATTO 3: big black trapezoid mesh grille, plate area, body-colour chin with silver lip
-      const tz = W / 2 - 0.2;
-      P.trim.push(new THREE.CylinderGeometry(tz - 0.2, tz - 0.02, 0.26, 4, 1).rotateY(Math.PI / 4).scale(0.06 / (tz * 1.41), 1, 1).translate(hl + 0.0, 0.48, 0));
-      for (let i = 0; i < 3; i++) P.rim.push(bx(0.01, 0.012, W - 0.7 - i * 0.08, hl + 0.025, 0.41 + i * 0.065, 0)); // mesh lines
-      P.head.push(bx(0.02, 0.11, 0.34, hl + 0.03, 0.49, 0)); // plate area (light)
-      P.chrome.push(bx(0.04, 0.025, W - 0.6, hl - 0.03, 0.25, 0)); // silver lower lip
-    }
-    // wheels: gloss-black split Y-spoke alloys (~18"), black cap, black tyres; set flush with the body side + dark arch gap
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-      const x = sx * wb / 2 + (mpv ? 0.06 : 0.03), zc = sz * (W / 2 - 0.08), face = zc + sz * 0.116;
-      P.tyre.push(new THREE.CylinderGeometry(0.345, 0.345, 0.225, 18).rotateX(Math.PI / 2).translate(x, 0.345, zc));
-      P.rim.push(new THREE.CylinderGeometry(0.245, 0.245, 0.012, 18).rotateX(Math.PI / 2).translate(x, 0.345, face - sz * 0.004));
-      P.trim.push(new THREE.CylinderGeometry(0.228, 0.228, 0.01, 16).rotateX(Math.PI / 2).translate(x, 0.345, face + sz * 0.001));
-      if (mpv) for (let k = 0; k < 5; k++) for (const d of [-0.11, 0.11]) P.rim.push(new THREE.BoxGeometry(0.035, 0.2, 0.014).translate(0, 0.125, 0).rotateZ(k * Math.PI * 2 / 5 + d).translate(x, 0.345, face + sz * 0.006));
-      else for (let k = 0; k < 5; k++) for (const d of [-0.09, 0.09]) P.face.push(new THREE.BoxGeometry(0.04, 0.2, 0.014).translate(0, 0.125, 0).rotateZ(0.18 * sz).rotateZ(k * Math.PI * 2 / 5 + d).translate(x, 0.345, face + sz * 0.006)); // ATTO 3: 5 twisted split spokes, machined silver faces on a black wheel
-      P.rim.push(new THREE.CylinderGeometry(0.06, 0.06, 0.02, 10).rotateX(Math.PI / 2).translate(x, 0.345, face + sz * 0.01));
-      const arch = new THREE.RingGeometry(0.355, mpv ? 0.405 : 0.46, 14, 1, mpv ? 0 : -0.15, mpv ? Math.PI : Math.PI + 0.3); // ATTO 3: thick black arch cladding if (sz < 0) arch.rotateY(Math.PI); P.trim.push(arch.translate(x, 0.345, sz * (W / 2 + 0.032)));
+    // rear: full-width slim red LED bar following the tail curve, lettering, reflectors, lower section
+    const xR = -hl, ty = mpv ? 0.84 : 1.0, zR = y => surfZ(xR, y);
+    const tailHalf = sd => [[xR + 0.3, ty + 0.02, sd * (surfZ(xR + 0.3, ty + 0.02) + 0.004)], [xR + 0.1, ty, sd * (surfZ(xR + 0.1, ty) + 0.004)], [xR + 0.02, ty, sd * (surfZ(xR + 0.02, ty) + 0.004)], [xR - 0.004, ty, sd * (zR(ty) - 0.05)]];
+    P.tail.push(tube([...tailHalf(-1), [xR - 0.006, ty, 0], ...tailHalf(1).reverse()], 0.024, 26));
+    if (mpv) { P.chrome.push(bx(0.02, 0.045, 0.34, xR - 0.006, ty - 0.12, 0)); P.chrome.push(bx(0.02, 0.018, 1.1, xR - 0.004, 0.42, 0)); }
+    else { P.chrome.push(bx(0.02, 0.028, 0.86, xR - 0.006, ty + 0.06, 0)); P.chrome.push(bx(0.03, 0.05, 0.9, xR - 0.004, 0.43, 0)); }
+    P.trim.push(bx(0.03, 0.1, 1.2, xR - 0.002, mpv ? 0.46 : 0.5, 0)); for (const sd of [-1, 1]) P.tail.push(bx(0.02, mpv ? 0.03 : 0.12, mpv ? 0.14 : 0.03, xR - 0.005, mpv ? 0.5 : 0.56, sd * 0.62));
+    // wheels: tyres, wells, arch trims
+    for (const wx of S.wheels) for (const sd of [-1, 1]) {
+      const zc = sd * (W / 2 - 0.125), face = zc + sd * 0.116;
+      P.tyre.push(new THREE.CylinderGeometry(WR, WR, 0.225, 16).rotateX(Math.PI / 2).translate(wx, WR, zc));
+      P.rim.push(new THREE.CylinderGeometry(0.245, 0.245, 0.012, 14).rotateX(Math.PI / 2).translate(wx, WR, face - sd * 0.004));
+      P.trim.push(new THREE.CylinderGeometry(0.228, 0.228, 0.01, 12).rotateX(Math.PI / 2).translate(wx, WR, face + sd * 0.001));
+      if (mpv) for (let k = 0; k < 5; k++) for (const d of [-0.11, 0.11]) P.rim.push(new THREE.BoxGeometry(0.035, 0.2, 0.014).translate(0, 0.125, 0).rotateZ(k * Math.PI * 2 / 5 + d).translate(wx, WR, face + sd * 0.006));
+      else for (let k = 0; k < 5; k++) for (const d of [-0.09, 0.09]) P.face.push(new THREE.BoxGeometry(0.04, 0.2, 0.014).translate(0, 0.125, 0).rotateZ(0.18 * sd).rotateZ(k * Math.PI * 2 / 5 + d).translate(wx, WR, face + sd * 0.006)); // ATTO 3: 5 twisted split spokes, machined silver faces
+      P.rim.push(new THREE.CylinderGeometry(0.06, 0.06, 0.02, 10).rotateX(Math.PI / 2).translate(wx, WR, face + sd * 0.01));
+      if (sd > 0) P.well.push(new THREE.CylinderGeometry(AR + 0.005, AR + 0.005, W - 0.3, 12, 1, true, Math.PI / 2 - 0.12, Math.PI + 0.24).rotateX(Math.PI / 2).translate(wx, WR, 0));
+      const za = sd * (surfZ(wx, WR + AR + 0.04) - 0.01);
+      if (!mpv) P.trim.push(new THREE.TorusGeometry(AR + 0.03, 0.045, 5, 16, Math.PI + 0.5).rotateZ(-0.25).scale(1, 1, 0.6).translate(wx, WR, za)); // ATTO 3: black arch flares
     }
     const g = new THREE.Group(); g.name = 'car:' + c.model;
     const bodyMat = c.color ? new THREE.MeshStandardMaterial({ color: new THREE.Color(c.color), roughness: mpv ? 0.28 : 0.34, metalness: mpv ? 0.3 : 0.4 }) : CM.body;
     for (const [k, arr] of Object.entries(P)) if (arr.length) { const m = new THREE.Mesh(mergeGeos(arr), k === 'body' ? bodyMat : CM[k]); m.castShadow = k === 'body' || k === 'glass'; m.receiveShadow = k === 'body'; g.add(m); }
     // charge port: M6 = round flap on the RIGHT rear quarter (behind rear door, above wheel); ATTO 3 = square flap on the RIGHT front fender (behind the front arch, near the A-pillar base)
-    const fx = mpv ? -wb / 2 + 0.06 + 0.05 : wb / 2 + 0.03 - 0.5, fyp = mpv ? 0.9 : 0.86, side = 1;
+    const fx = mpv ? S.wheels[1] + 0.06 : S.wheels[0] - 0.55, fyp = mpv ? 0.88 : 0.86, fz = surfZ(fx, fyp) + 0.006;
     const flapGeo = mpv ? new THREE.CylinderGeometry(0.075, 0.075, 0.012, 16).rotateX(Math.PI / 2) : new THREE.BoxGeometry(0.14, 0.13, 0.012);
-    const flap = new THREE.Mesh(flapGeo.translate(fx, fyp, side * (W / 2 + 0.018)), bodyMat); g.add(flap);
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(mpv ? 0.17 : 0.16, 0.006, 0.006).translate(fx, fyp - 0.075, side * (W / 2 + 0.02)), CM.trim)); // flap shut-line hint
+    g.add(new THREE.Mesh(flapGeo.translate(fx, fyp, fz), bodyMat)); g.add(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.006, 0.006).translate(fx, fyp - 0.075, fz + 0.003), CM.trim));
     g.rotation.y = -Math.PI / 2; g.position.set(c.x, 0.2, c.z); g.userData = { car: c }; // nose-out: front faces the street (+z), car right = world -x
-    // local (x, y, z) → world (c.x - z, y, c.z + x) for rotation.y = -90°
-    g.userData.port = new THREE.Vector3(c.x - side * (W / 2 + 0.03), 0.2 + fyp, c.z + fx);
-    g.userData.portN = new THREE.Vector3(-side, 0, 0); // outward normal of the flap
+    g.userData.port = new THREE.Vector3(c.x - (fz + 0.024), 0.2 + fyp, c.z + fx); // local (x, y, z) → world (c.x - z, y, c.z + x)
+    g.userData.portN = new THREE.Vector3(-1, 0, 0);
     return g;
   }
   const carSpecs = evCfg.cars || [
@@ -579,7 +632,7 @@ export function buildHouse(data) {
     const nearest = carObjs.reduce((a, o) => (o.userData.port.distanceTo(port0) < a.userData.port.distanceTo(port0) ? o : a));
     const target = carObjs.find(o => o.userData.car.id && o.userData.car.id === evCfg.default_car) || nearest;
     const pp = target.userData.port, pn = target.userData.portN; // nearest car by its real charge-port position
-    const curve = new THREE.CatmullRomCurve3([port0, new THREE.Vector3(port0.x + 0.08, 0.1, port0.z + 0.15), new THREE.Vector3((port0.x + pp.x) / 2, 0.06, (port0.z + pp.z) / 2), new THREE.Vector3(pp.x + pn.x * 0.15, 0.35, pp.z), pp]);
+    const curve = new THREE.CatmullRomCurve3([port0, new THREE.Vector3(port0.x + 0.08, 0.1, port0.z + 0.15), new THREE.Vector3((port0.x + pp.x) / 2, 0.06, (port0.z + pp.z) / 2), new THREE.Vector3(pp.x + pn.x * 0.3, 0.6, pp.z + 0.3), new THREE.Vector3(pp.x + pn.x * 0.12, pp.y - 0.05, pp.z + 0.04), pp]);
     const cable = new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.018, 6, false), std('#111214', { roughness: 0.7 })); cable.name = 'ev-cable'; cable.castShadow = false;
     const plug = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.16), std('#1b1c1e')); plug.position.copy(pp).addScaledVector(pn, 0.05); plug.rotation.y = Math.PI / 2;
     const haloMat = new THREE.MeshBasicMaterial({ color: 0x35e07a, transparent: true, opacity: 0.55, depthWrite: false });
