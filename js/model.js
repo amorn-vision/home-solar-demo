@@ -390,7 +390,7 @@ export function buildHouse(data) {
     const grp = groupFor(floorOfY(F.y0 ?? F.box?.[1] ?? 0));
     const P = F.plane, mat = fmat(F.color);
     // q(a range, y range, depth range from c)
-    const q = (a, b, yA, yB, d0, d1, m = mat) => (P === 'z' ? bb(a, yA, F.c + d0, b, yB, F.c + d1, m) : bb(F.c + d0, yA, a, F.c + d1, yB, b, m));
+    const q = (a, b, yA, yB, d0, d1, m = mat) => { const o = P === 'z' ? bb(a, yA, F.c + d0, b, yB, F.c + d1, m) : bb(F.c + d0, yA, a, F.c + d1, yB, b, m); if (F.note) o.name = F.note; return o; };
     const out = F.out ?? 1, dd = (u, v) => (out > 0 ? [u, v] : [-v, -u]);
     if (F.type === 'frame') {
       const [d0, d1] = dd(0, F.depth), t = F.t;
@@ -446,7 +446,7 @@ export function buildHouse(data) {
   const evCfg = data.ev || {};
   const CM = {
     body: new THREE.MeshStandardMaterial({ color: 0xf4f3ef, roughness: 0.28, metalness: 0.3 }), // pearl white
-    glass: new THREE.MeshStandardMaterial({ color: 0x0d1115, roughness: 0.06, metalness: 0.6 }), // near-black tint
+    glass: new THREE.MeshStandardMaterial({ color: 0x26303b, roughness: 0.1, metalness: 0.35 }), // dark tint, slightly bluish/reflective so it reads as glass in daylight
     tyre: new THREE.MeshStandardMaterial({ color: 0x141516, roughness: 0.9 }),
     rim: new THREE.MeshStandardMaterial({ color: 0x1e2023, roughness: 0.18, metalness: 0.55 }), // gloss-black alloy wheels
     chrome: new THREE.MeshStandardMaterial({ color: 0xc8ccd1, roughness: 0.25, metalness: 0.9 }),
@@ -464,7 +464,7 @@ export function buildHouse(data) {
   };
   const extr = (pts, w, z0 = 0) => { const sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))); const g = new THREE.ExtrudeGeometry(sh, { depth: w - 0.06, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 1, curveSegments: 1 }); g.translate(0, 0, -(w - 0.06) / 2 + z0); return g; };
   const bx = (sx, sy, sz, x, y, z) => new THREE.BoxGeometry(sx, sy, sz).translate(x, y, z);
-  // spec: {model, kind:'mpv'|'suv', L, W, H, wb, x, z}; local: +x = car front, +z = car right; placed nose-in (front → house, -z)
+  // spec: {model, kind:'mpv'|'suv', L, W, H, wb, x, z}; local: +x = car front, +z = car right (RHD cars); parked nose-out (front → street, +z)
   const tumble = (geo, belt, H, amt = 0.13) => { const a = geo.attributes.position; for (let i = 0; i < a.count; i++) { const k = Math.max(0, Math.min(1, (a.getY(i) - belt) / (H - belt))); a.setZ(i, a.getZ(i) * (1 - amt * k)); } return geo; };
   function buildCar(c) {
     const { L, W, H, wb } = c, hl = L / 2, mpv = c.kind === 'mpv', belt = mpv ? 1.0 : 1.0;
@@ -488,7 +488,8 @@ export function buildHouse(data) {
     }
     if (!mpv) for (const sz of [-1, 1]) P.body.push(new THREE.ExtrudeGeometry(new THREE.Shape([[-hl + 0.1, belt + 0.06], [-0.75, belt + 0.02], [-0.75, belt + 0.04], [-hl + 0.3, belt + 0.24], [-hl + 0.16, belt + 0.26]].map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.02, bevelEnabled: false }).translate(0, 0, sz > 0 ? W / 2 - 0.075 : -W / 2 + 0.055)); // ATTO 3: window line kicks up at the rear
     if (!mpv) P.trim.push(extr([[-hl + 0.5, H], [-hl + 0.72, H], [-hl + 0.56, H + 0.08]], 0.09)); // shark-fin antenna
-    P.glass.push(bx((r1 - r0) * 0.86, 0.04, rw - 0.3, (r0 + r1) / 2 + 0.05, H - 0.015, 0));
+    P.body.push(bx(r1 - r0 + 0.04, 0.035, rw - 0.12, (r0 + r1) / 2, H - 0.01, 0)); // roof skin (body colour) so the car reads from above
+    if (mpv) { const pl = (r1 - r0) * 0.58; P.glass.push(bx(pl, 0.02, rw - 0.38, r1 - pl / 2 - 0.1, H + 0.012, 0)); P.trim.push(bx(0.07, 0.022, rw - 0.38, r1 - pl - 0.135, H + 0.012, 0)); } // M6: dark panoramic glass over the front + black split bar
     // chrome window-line trims (top + bottom of the glass band), both sides
     for (const sz of [-1, 1]) {
       P.chrome.push(bx(ws - (-hl + 0.12), 0.022, 0.02, (ws - hl + 0.12) / 2, belt + 0.035, sz * (W / 2 - 0.035)));
@@ -547,15 +548,15 @@ export function buildHouse(data) {
     const g = new THREE.Group(); g.name = 'car:' + c.model;
     const bodyMat = c.color ? new THREE.MeshStandardMaterial({ color: new THREE.Color(c.color), roughness: mpv ? 0.28 : 0.34, metalness: mpv ? 0.3 : 0.4 }) : CM.body;
     for (const [k, arr] of Object.entries(P)) if (arr.length) { const m = new THREE.Mesh(mergeGeos(arr), k === 'body' ? bodyMat : CM[k]); m.castShadow = k === 'body' || k === 'glass'; m.receiveShadow = k === 'body'; g.add(m); }
-    // charge port: M6 = round flap on the LEFT rear quarter (behind rear door, above wheel); ATTO 3 = square flap on the RIGHT front fender (behind the front arch, near the A-pillar base)
-    const fx = mpv ? -wb / 2 + 0.06 + 0.05 : wb / 2 + 0.03 - 0.5, fyp = mpv ? 0.9 : 0.86, side = mpv ? -1 : 1;
+    // charge port: M6 = round flap on the RIGHT rear quarter (behind rear door, above wheel); ATTO 3 = square flap on the RIGHT front fender (behind the front arch, near the A-pillar base)
+    const fx = mpv ? -wb / 2 + 0.06 + 0.05 : wb / 2 + 0.03 - 0.5, fyp = mpv ? 0.9 : 0.86, side = 1;
     const flapGeo = mpv ? new THREE.CylinderGeometry(0.075, 0.075, 0.012, 16).rotateX(Math.PI / 2) : new THREE.BoxGeometry(0.14, 0.13, 0.012);
     const flap = new THREE.Mesh(flapGeo.translate(fx, fyp, side * (W / 2 + 0.018)), bodyMat); g.add(flap);
     g.add(new THREE.Mesh(new THREE.BoxGeometry(mpv ? 0.17 : 0.16, 0.006, 0.006).translate(fx, fyp - 0.075, side * (W / 2 + 0.02)), CM.trim)); // flap shut-line hint
-    g.rotation.y = Math.PI / 2; g.position.set(c.x, 0.2, c.z); g.userData = { car: c };
-    // local (x, y, z) → world (c.x + z, y, c.z - x) for rotation.y = +90°
-    g.userData.port = new THREE.Vector3(c.x + side * (W / 2 + 0.03), 0.2 + fyp, c.z - fx);
-    g.userData.portN = new THREE.Vector3(side, 0, 0); // outward normal of the flap
+    g.rotation.y = -Math.PI / 2; g.position.set(c.x, 0.2, c.z); g.userData = { car: c }; // nose-out: front faces the street (+z), car right = world -x
+    // local (x, y, z) → world (c.x - z, y, c.z + x) for rotation.y = -90°
+    g.userData.port = new THREE.Vector3(c.x - side * (W / 2 + 0.03), 0.2 + fyp, c.z + fx);
+    g.userData.portN = new THREE.Vector3(-side, 0, 0); // outward normal of the flap
     return g;
   }
   const carSpecs = evCfg.cars || [
@@ -585,7 +586,7 @@ export function buildHouse(data) {
     const halo = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 10), haloMat); halo.position.copy(pp);
     const ringMat = new THREE.MeshBasicMaterial({ color: 0x35e07a, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false });
     const ring = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.26, 28), ringMat); ring.position.copy(pp).addScaledVector(pn, 0.03); ring.rotation.y = -Math.PI / 2;
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, 0.5), haloMat); bar.position.set(pp.x + pn.x * 0.005, 1.12, target.userData.car.z + 0.2); // green strip on the car's side glass (charging indicator)
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, 0.5), haloMat); bar.position.set(pp.x + pn.x * 0.005, 1.12, target.userData.car.z); // green strip on the car's side glass (charging indicator)
     const grp = new THREE.Group(); grp.name = 'ev-session'; grp.add(cable, plug); const glow = new THREE.Group(); glow.add(halo, ring, bar); grp.add(glow); cars.add(grp);
     Object.assign(ev, {
       car: target.userData.car, charger: port0, port: pp,

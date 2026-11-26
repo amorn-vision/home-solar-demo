@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "บ้าน 3 ชั้น — โมเดลร่างแรก",
-    "version": "0.10.5",
+    "version": "0.10.6",
     "source": "แบบร่างสถาปัตย์ปี 2558 (ผัง + รูปด้าน 4 ด้าน + รูปตัด, บ้านจริงมีการเปลี่ยนแปลงบางส่วน) + ภาพโดรนด้านหน้า + รูปถ่ายจริงรอบบ้าน 5 รูป (ใช้แทนแบบในส่วนที่ต่างกัน)",
     "units": "meters",
     "coords": "x = ซ้าย→ขวา (มองจากถนน) จากขอบที่ดินซ้าย, z = หลัง→หน้า จากขอบที่ดินด้านหลัง (ถนนอยู่ด้าน z มาก), y = ความสูงจากระดับถนน ±0.00",
@@ -2160,7 +2160,7 @@
         "wb": 2.8,
         "x": 15.85,
         "z": 6.2,
-        "port": "round flap, left rear quarter"
+        "port": "round flap, right rear quarter"
       },
       {
         "id": "right",
@@ -2177,6 +2177,7 @@
       }
     ],
     "note": "รถจอดหันหัวเข้าบ้าน; สายชาร์จต่อไปคันที่ใกล้ที่ชาร์จที่สุด (คันซ้าย BYD M6) — รูปทรงแบบย่อ",
-    "default_car_note": "Modbus gives no vehicle identity, so the charger session always shows on ONE fixed car: id of a car in ev.cars, or \"nearest\" = the car whose real charge port is closest to the charger. Default: left (BYD M6, round flap on its left-rear quarter, nearest the charger)."
+    "default_car_note": "Modbus gives no vehicle identity, so the charger session always shows on ONE fixed car: id of a car in ev.cars, or \"nearest\" = the car whose real charge port is closest to the charger. Default: left (BYD M6, round flap on its right-rear quarter, which faces the charger wall when parked nose-out, nearest the charger).",
+    "parking": "nose-out (front to the street), right-hand drive"
   }
 }
