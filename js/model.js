@@ -71,14 +71,24 @@ function bb(x0, y0, z0, x1, y1, z1, mat) {
 function inRect(r, x, z) { return x > r[0] && x < r[2] && z > r[1] && z < r[3]; }
 function overlap(a, b) { return a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]; }
 
-function solarTexture() {
-  const c = document.createElement('canvas'); c.width = 128; c.height = 256;
+function solarTexture(style = 'jinko', landscape = false) {
+  // drawn portrait (long side vertical); rotated for landscape panels
+  const W = 128, H = 256, c = document.createElement('canvas'); c.width = landscape ? H : W; c.height = landscape ? W : H;
   const g = c.getContext('2d');
-  g.fillStyle = '#1a2436'; g.fillRect(0, 0, 128, 256);
-  g.strokeStyle = '#3a4a66'; g.lineWidth = 2;
-  for (let i = 1; i < 6; i++) { g.beginPath(); g.moveTo(i * 128 / 6, 0); g.lineTo(i * 128 / 6, 256); g.stroke(); }
-  for (let j = 1; j < 12; j++) { g.beginPath(); g.moveTo(0, j * 256 / 12); g.lineTo(128, j * 256 / 12); g.stroke(); }
-  g.strokeStyle = '#c9ced6'; g.lineWidth = 6; g.strokeRect(0, 0, 128, 256);
+  if (landscape) { g.translate(H, 0); g.rotate(Math.PI / 2); }
+  if (style === 'aiko') {
+    g.fillStyle = '#0b0c0e'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#15171a'; g.lineWidth = 1;
+    for (let j = 1; j < 24; j++) { g.beginPath(); g.moveTo(0, j * H / 24); g.lineTo(W, j * H / 24); g.stroke(); }
+    g.strokeStyle = '#050506'; g.lineWidth = 6; g.strokeRect(0, 0, W, H);
+  } else {
+    g.fillStyle = '#1b2a48'; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#3b5078'; g.lineWidth = 1.5;
+    for (let i = 1; i < 6; i++) { g.beginPath(); g.moveTo(i * W / 6, 0); g.lineTo(i * W / 6, H); g.stroke(); }
+    for (let j = 1; j < 24; j++) { g.beginPath(); g.moveTo(0, j * H / 24); g.lineTo(W, j * H / 24); g.stroke(); }
+    g.strokeStyle = '#7f93b8'; g.lineWidth = 3; g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke(); // half-cut split
+    g.strokeStyle = '#d3d7dc'; g.lineWidth = 6; g.strokeRect(0, 0, W, H);
+  }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
@@ -392,6 +402,7 @@ export function buildHouse(data) {
     m.castShadow = false; m.receiveShadow = true; m.name = 'roof-gable-fill'; roofGroup.add(m);
   };
   wedge(3.00, 14.45, 1.90, 9.00); wedge(0.90, 3.00, 3.00, 6.40);
+  if (rx1 > 15.5) wedge(14.45, Math.min(rx1 - 0.3, 17.45), 1.90, 5.30); // real roof extends over the floor-3 work bay
   // front fascia band (blue-grey) between floor-3 top and roof; bump-out top white with grey cap
   if (rf.frontFascia) {
     const zf = 9.0, top = under(zf + 0.08);
@@ -403,30 +414,32 @@ export function buildHouse(data) {
   const sol = data.solar;
   const solar = new THREE.Group(); solar.name = 'solar-array';
   solar.userData = { pick: 'solar', floor: 4, strings: [] };
-  const tex = solarTexture();
-  const pw = sol.panel.w, ph = sol.panel.h, pg = sol.panelGap ?? 0.02;
+  const pg = sol.panelGap ?? 0.02;
   const strings = sol.strings ?? Array.from({ length: sol.groups }, (_, i) => ({ id: 'G' + (i + 1), label: 'กลุ่ม ' + (i + 1), count: sol.cols * sol.rows, cols: sol.cols, rows: sol.rows, offset: 0 }));
   const bgap = sol.blockGap ?? sol.groupGap ?? 0.3;
-  const widths = strings.map(st => st.cols * pw + (st.cols - 1) * pg);
-  const total = widths.reduce((a, b) => a + b, 0) + bgap * (strings.length - 1);
+  const dims = strings.map(st => {
+    const pn = st.panel || sol.panel; const land = st.orientation === 'landscape';
+    const px = land ? pn.h : pn.w, pz = land ? pn.w : pn.h; // px along house length, pz along roof slope
+    return { px, pz, land, wx: st.cols * px + (st.cols - 1) * pg, wz: st.rows * pz + (st.rows - 1) * pg };
+  });
+  const total = dims.reduce((a, d) => a + d.wx, 0) + bgap * (strings.length - 1);
   let idx = 0, xCur = sol.centerX - total / 2 - (rx0 + rx1) / 2;
   strings.forEach((st, gI) => {
-    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.25, metalness: 0.4 });
+    const dm = dims[gI];
+    const mat = new THREE.MeshStandardMaterial({ map: solarTexture(st.style, dm.land), roughness: st.style === 'aiko' ? 0.35 : 0.25, metalness: 0.35 });
     const grp = new THREE.Group(); grp.name = 'string-' + st.id;
     grp.userData = { pick: 'solar', floor: 4, string: st.id, label: st.label };
-    const gd = st.rows * ph + (st.rows - 1) * pg;
     let n = 0;
-    // fill from the high (front) row backwards; the last row may be partial
     for (let r = st.rows - 1; r >= 0 && n < st.count; r--) for (let c = 0; c < st.cols && n < st.count; c++) {
-      const x = xCur + c * (pw + pg) + pw / 2;
-      const z = (st.offset || 0) - gd / 2 + r * (ph + pg) + ph / 2;
-      const p = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.04, ph), mat);
-      p.position.set(x, 0.12, z); p.castShadow = true; p.name = 'panel-' + (++idx); n++;
-      p.userData = { pick: 'solar', floor: 4, panelIndex: idx, group: gI + 1, string: st.id, stringLabel: st.label };
+      const x = xCur + c * (dm.px + pg) + dm.px / 2;
+      const z = (st.offset || 0) - dm.wz / 2 + r * (dm.pz + pg) + dm.pz / 2;
+      const p = new THREE.Mesh(new THREE.BoxGeometry(dm.px, 0.04, dm.pz), mat);
+      p.position.set(x, 0.12, z); p.castShadow = true; p.name = 'panel-' + st.id + '-' + (n + 1); n++; idx++;
+      p.userData = { pick: 'solar', floor: 4, panelIndex: n, group: gI + 1, string: st.id, stringLabel: st.label };
       grp.add(p); pickables.push(p);
     }
     solar.add(grp); solar.userData.strings.push({ id: st.id, label: st.label, count: n });
-    xCur += widths[gI] + bgap;
+    xCur += dm.wx + bgap;
   });
   roofPivot.add(solar);
   roofGroup.userData.solar = solar;
