@@ -18,7 +18,7 @@ function setPalette(p = {}) {
   Object.assign(MAT, {
     wall: std(P.wall || P.white, { roughness: 0.92 }), partition: std('#fbfbfa'), white: std(P.white),
     accent: std(P.accent), slate: std(P.slate), voidSlate: std(P.voidSlate || '#4f5a66', { roughness: 0.9 }), louver: std(P.louver, { roughness: 0.6 }),
-    band: std(P.accent), frame: std(P.white, { roughness: 0.5 }),
+    band: std(P.accent), frame: std(P.white, { roughness: 0.5 }), alu: std(P.aluminium || '#1c1e20', { roughness: 0.45, metalness: 0.3 }),
     glass: std(P.glass, { roughness: 0.08, metalness: 0.15, transparent: true, opacity: 0.72 }),
     rail: std(P.metal, { roughness: 0.4, metalness: 0.4 }), metal: std(P.metal, { roughness: 0.4, metalness: 0.4 }),
     stone: std('#ffffff', { roughness: 1, map: stoneTexture(P.stone) }), wood: std(P.wood, { roughness: 0.8 }), stair: std(P.stairWood || P.wood, { roughness: 0.7 }),
@@ -259,7 +259,7 @@ export function buildHouse(data) {
     const q = (a, b, yA, yB, d0, d1, mat) => (axis === 'x' ? bb(a, yA, c + d0, b, yB, c + d1, mat) : bb(c + d0, yA, a, c + d1, yB, b, mat));
     const dd = (u, v) => (sign > 0 ? [u, v] : [-v, -u]);
     const gl = q(a0, b1(a1), ya, yb, -0.02, 0.02, MAT.glass); gl.castShadow = false; gl.name = 'glass:' + o.id; g.add(gl);
-    const f = 0.09, [p0, p1] = dd(0.0, 0.14), FR = MAT[o.frameColor] || MAT.frame;
+    const f = 0.09, [p0, p1] = dd(0.0, 0.14), FR = MAT[o.frameColor] || MAT.alu; // aluminium frames + mullions: black (wall trims stay MAT.frame)
     g.add(q(a0, a1, yb - f, yb, p0, p1, FR));
     g.add(q(a0, a1, ya, ya + f, p0, p1, FR));
     g.add(q(a0, a0 + f, ya, yb, p0, p1, FR));
