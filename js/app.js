@@ -2,7 +2,7 @@ import { createAdapter, Sim } from './data.js';
 import { lineChart, barChart, sankey, miniArea, COLORS, f1, f2, hhmm } from './charts.js';
 
 const $ = s => document.querySelector(s);
-const ds = createAdapter();
+const ds = await createAdapter();
 const S = { tab: 'home', range: 'today', view: 'chart', snap: null, scene: null, refresh: +(localStorage.getItem('he.refresh') || 5), timer: null };
 const kw = x => f2(Math.abs(x ?? 0));
 const toast = msg => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800); };
@@ -47,15 +47,25 @@ function renderHome(s) {
     cell('แบต', COLORS.battery, (p.battery < -0.05 ? '−' : '') + kw(p.battery), 'kW', `${Math.round(s.battery.soc_pct)}%`) +
     cell('กริด', COLORS.grid, (p.grid < -0.05 ? '−' : '') + kw(p.grid), 'kW', `ซื้อ ${f1(t.grid_import)}`);
   const ev = s.ev;
+  renderEvCard(s);
   $('#homeList').innerHTML =
     item('#energy', '⚡', 'พลังงาน', `ผลิต ${f1(t.pv)} kWh · ใช้ ${f1(t.home + (t.ev || 0))} kWh วันนี้`) +
     item('#energy/flow/today', '🌿', 'โหมดการทำงาน', `Sigenergy · ${EMS_TH[s.plant.ems_mode] || s.plant.ems_mode || '-'} · พึ่งพาตัวเอง ${Math.round(s.self_sufficiency_pct)}% วันนี้`) +
-    item('#device/ev', '🚗', 'รถยนต์ไฟฟ้า (EV DC)', ev.power_kw > 0.05 ? `กำลังชาร์จ · รถ ${Math.round(ev.vehicle_soc_pct)}% · ${f1(ev.session_kwh)} kWh` : `ว่าง · ชาร์จวันนี้ ${f1(t.ev || 0)} kWh`, ev.power_kw > 0.05 ? kw(ev.power_kw) + ' kW' : '') +
     item('#devices', '🔌', 'อุปกรณ์', `อินเวอร์เตอร์ ${kw(s.inverter.pv_kw)} kW · แบต 2 ก้อน ${Math.round(s.battery.soc_pct)}% · เกตเวย์ ${s.gateway.on_grid ? 'ปกติ' : 'ไฟดับ'}`) +
     item('#settings', '⚙️', 'ตั้งค่า', 'ธีม · การแจ้งเตือน · ข้อมูลระบบ');
   S.scene?.update(s);
   const sun = Sim.sunTimes(Sim.bkk(new Date()));
   $('#sunChip').textContent = `☀ ขึ้น ${hhmm(sun.rise)} · ตก ${hhmm(sun.set)} น.`;
+}
+
+// EV DC charger card (status, power, session energy/duration, car SOC)
+const dur = sec => { sec = Math.max(0, Math.round(sec || 0)); return `${Math.floor(sec / 3600)}:${String(Math.floor(sec % 3600 / 60)).padStart(2, '0')} ชม.`; };
+function renderEvCard(s) {
+  const e = s.ev, on = e.power_kw > 0.05, soc = e.vehicle_soc_pct, sec = e.session_s ?? (e.session_min || 0) * 60;
+  $('#evCard').innerHTML = `<div class="ev-top"><div class="ev-ic">🚗</div><div class="ev-t"><b>ที่ชาร์จรถ EV DC</b><span class="ev-pill ${on ? 'on' : ''}">${e.state_th || '–'}</span></div>
+    <div class="ev-kw">${kw(e.power_kw)}<small>kW</small></div><div class="chev" style="color:var(--mut);font-size:22px">›</div></div>
+    <div class="ev-grid"><div><i>รอบชาร์จนี้</i><b>${f1(e.session_kwh)}</b> <small>kWh</small></div><div><i>ระยะเวลา</i><b>${dur(sec)}</b></div>
+    <div><i>แบตรถ</i><b>${soc != null ? Math.round(soc) + '%' : '–'}</b>${soc != null ? `<div class="ev-bar"><i style="width:${Math.max(0, Math.min(100, soc))}%"></i></div>` : ''}</div></div>`;
 }
 
 // weather (Open-Meteo, Bangkok city centre — no key). PV estimate = radiation × kWp × PR.
@@ -138,21 +148,21 @@ async function renderDevice(s) {
       ${row('อุณหภูมิ', iv.temp_c != null ? f1(iv.temp_c) + ' °C' : '–')}${row('Firmware', iv.firmware || '–')}${row('กำลังพิกัด', '20 kW')}</table></div>`;
   } else if (id === 'battery') {
     const b = s.battery, C = 2 * Math.PI * 52;
-    html += `<svg class="ring" width="150" height="150" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--soft)" stroke-width="11"/><circle cx="60" cy="60" r="52" fill="none" stroke="${COLORS.battery}" stroke-width="11" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - b.soc_pct / 100)}"/><text x="60" y="64" text-anchor="middle" style="font-size:26px;font-weight:700;fill:var(--ink)">${Math.round(b.soc_pct)}%</text><text x="60" y="82" text-anchor="middle" style="font-size:10px;fill:var(--mut)">${f1(b.soc_pct / 100 * 20)} / 20 kWh</text></svg>
+    html += `<svg class="ring" width="150" height="150" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--soft)" stroke-width="11"/><circle cx="60" cy="60" r="52" fill="none" stroke="${COLORS.battery}" stroke-width="11" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - b.soc_pct / 100)}"/><text x="60" y="64" text-anchor="middle" style="font-size:26px;font-weight:700;fill:var(--ink)">${Math.round(b.soc_pct)}%</text><text x="60" y="82" text-anchor="middle" style="font-size:10px;fill:var(--mut)">${f1(b.soc_pct / 100 * (b.capacity_kwh || 20))} / ${f1(b.capacity_kwh || 20)} kWh</text></svg>
       <span class="state-pill ${b.state === 'idle' ? 'idle' : ''}">${{ charging: 'กำลังชาร์จ', discharging: 'กำลังจ่ายไฟ', idle: 'พัก' }[b.state]} ${kw(s.power_kw.battery)} kW</span></div></div>
       <div class="card"><div class="card-h"><b>SOC วันนี้</b><span class="muted">%</span></div><div id="devChart"></div></div>
-      <div class="card"><table class="tbl">${row('ชาร์จวันนี้', f1(s.today_kwh.battery_charge) + ' kWh')}${row('จ่ายวันนี้', f1(s.today_kwh.battery_discharge) + ' kWh')}${row('สุขภาพ (SOH)', f1(b.soh_pct) + '%')}${row('อุณหภูมิเซลล์', f1(b.temp_c) + ' °C')}
+      <div class="card"><table class="tbl">${row('ชาร์จวันนี้', f1(s.today_kwh.battery_charge) + ' kWh')}${row('จ่ายวันนี้', f1(s.today_kwh.battery_discharge) + ' kWh')}${b.avail_discharge_kwh != null ? row('จ่ายได้อีก', f1(b.avail_discharge_kwh) + ' kWh') : ''}${row('สุขภาพ (SOH)', f1(b.soh_pct) + '%')}${row('อุณหภูมิเซลล์', f1(b.temp_c) + ' °C')}
       ${b.modules.map(m => row(m.name, `${Math.round(m.soc)}% · ${f2(Math.abs(m.kw))} kW`)).join('')}</table></div>`;
   } else if (id === 'ev') {
     const e = s.ev;
     html += `<div class="n">${kw(e.power_kw)}<small>kW</small></div><span class="state-pill ${e.power_kw > 0.05 ? '' : 'idle'}">${e.state_th}</span></div></div>
       <div class="card"><div class="card-h"><b>การชาร์จวันนี้</b><span class="muted">kW</span></div><div id="devChart"></div></div>
-      <div class="card"><table class="tbl">${row('แบตรถ', e.vehicle_soc_pct != null ? Math.round(e.vehicle_soc_pct) + '%' : '–')}${row('รอบชาร์จนี้', f1(e.session_kwh) + ' kWh · ' + e.session_min + ' นาที')}${row('ชาร์จวันนี้', f1(s.today_kwh.ev) + ' kWh')}${row('ชาร์จรวม', Math.round(s.total_kwh.ev).toLocaleString('th-TH') + ' kWh')}${row('กำลังสูงสุด', '25 kW DC')}</table></div>`;
+      <div class="card"><table class="tbl">${row('สถานะ', e.state_th || '–')}${row('แบตรถ', e.vehicle_soc_pct != null ? Math.round(e.vehicle_soc_pct) + '%' : '–')}${row('รอบชาร์จนี้', f1(e.session_kwh) + ' kWh · ' + dur(e.session_s ?? e.session_min * 60))}${e.vehicle_voltage_v != null ? row('แรงดัน / กระแส', `${f1(e.vehicle_voltage_v)} V · ${f1(e.current_a)} A`) : ''}${row('ชาร์จวันนี้', f1(s.today_kwh.ev) + ' kWh')}${row('ชาร์จรวม', Math.round(s.total_kwh.ev).toLocaleString('th-TH') + ' kWh')}${row('กำลังสูงสุด', (e.rated_kw ? f1(e.rated_kw) : '25') + ' kW DC')}</table></div>`;
   } else {
     const g = s.gateway;
     html += `<div class="n">${kw(g.grid_kw)}<small>kW</small></div><span class="state-pill">${g.on_grid ? 'เชื่อมต่อกริด' : 'ไฟดับ · ใช้ไฟสำรอง'}</span></div></div>
       <div class="card"><div class="card-h"><b>ซื้อ/ขายไฟวันนี้</b><span class="muted">kW (+ซื้อ)</span></div><div id="devChart"></div></div>
-      <div class="card"><table class="tbl">${row('ซื้อไฟวันนี้', f1(s.today_kwh.grid_import) + ' kWh')}${row('ขายไฟวันนี้', f1(s.today_kwh.grid_export) + ' kWh')}${(g.voltage || []).map((v, i) => row('แรงดันเฟส ' + 'ABC'[i], f1(v) + ' V')).join('')}${row('ซื้อไฟรวม', Math.round(s.total_kwh.grid_import).toLocaleString('th-TH') + ' kWh')}</table></div>`;
+      <div class="card"><table class="tbl">${row('ซื้อไฟวันนี้', f1(s.today_kwh.grid_import) + ' kWh')}${row('ขายไฟวันนี้', f1(s.today_kwh.grid_export) + ' kWh')}${(g.voltage || []).map((v, i) => row('แรงดันเฟส ' + 'ABC'[i], f1(v) + ' V')).join('')}${g.freq_hz ? row('ความถี่', f2(g.freq_hz) + ' Hz') : ''}${row('ซื้อไฟรวม', Math.round(s.total_kwh.grid_import).toLocaleString('th-TH') + ' kWh')}</table></div>`;
   }
   $('#devDetail').innerHTML = html;
   const key = { inverter: 'pv', battery: 'soc', ev: 'ev', gateway: 'grid' }[id], col = { inverter: COLORS.pv, battery: COLORS.battery, ev: COLORS.ev, gateway: COLORS.grid }[id];
@@ -161,7 +171,7 @@ async function renderDevice(s) {
 
 function renderSettings() {
   $('#sysInfo').innerHTML = [
-    ['แหล่งข้อมูล', ds.name], ['การเชื่อมต่อจริง', 'Modbus TCP ผ่านกล่องฮับในบ้าน (อ่านอย่างเดียว) · เร็ว ๆ นี้'],
+    ['แหล่งข้อมูล', ds.name], ['การเชื่อมต่อจริง', ds.live ? `Modbus TCP · Home Hub ${S.snap?.hub?.version || ''} (อ่านอย่างเดียว · LAN) · ทุก ${S.snap?.hub?.poll_s || 5} วินาที` : 'Modbus TCP ผ่าน Home Hub บนคอมในบ้าน (อ่านอย่างเดียว) · หน้านี้เป็นข้อมูลตัวอย่าง'],
     ['แผงโซลาร์', `${Sim.CFG.panels} แผง · ${f2(Sim.CFG.pv_kwp)} kWp`], ['สตริง', Sim.PV_STRINGS.filter(x => x.n).map(x => `${x.id} ${x.brand} ${x.w}W×${x.n}`).join(' · ') + ' · PV4 ไม่ได้ใช้'], ['ทิศบ้านในโมเดล', 'หน้าบ้านหันทิศ NNE (~30°) · แกนยาว WNW–ESE'],
     ['โมเดลบ้าน', 'ร่างแรกจากแบบ · ตำแหน่งอุปกรณ์เป็นตัวอย่าง'], ['เวอร์ชัน', 'v2 · ต้นแบบหน้าจอ'],
   ].map(([k, v]) => `<div><b style="font-weight:500">${k}</b><span>${v}</span></div>`).join('');
@@ -171,8 +181,11 @@ function renderSettings() {
 async function render() {
   const s = S.snap; if (!s) return;
   $('#clock').textContent = s.ts.slice(11, 16);
-  $('#demoBadge').style.display = ds.demo || s.demo ? '' : 'none';
+  const badge = $('#demoBadge'), isLive = ds.live && !s.demo;
+  badge.textContent = isLive ? 'ข้อมูลจริง · LAN' : ds.live ? 'Hub · ข้อมูลจำลอง' : 'ข้อมูลตัวอย่าง'; badge.classList.toggle('live', isLive);
+  badge.title = isLive ? 'อ่านจาก Sigenergy ผ่าน Home Hub ในบ้าน (อ่านอย่างเดียว)' : 'ตัวเลขจำลอง ยังไม่ได้ต่อเครื่องจริง';
   $('#stTxt').textContent = s.errors?.length ? 'เชื่อมต่อไม่ได้' : 'ออนไลน์';
+  document.querySelector('.status .dot')?.classList.toggle('off', !!s.errors?.length);
   if (S.tab === 'home') renderHome(s);
   else if (S.tab === 'energy') await renderEnergy();
   else if (S.tab === 'devices') renderDevices(s);

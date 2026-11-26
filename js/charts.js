@@ -1,7 +1,7 @@
 // Small dependency-free SVG charts: line chart w/ tooltip, daily bars, Sankey.
 const NS = 'http://www.w3.org/2000/svg';
-const f1 = x => Math.abs(x) >= 100 ? Math.round(x).toLocaleString('th-TH') : (Math.abs(x) < 0.05 ? 0 : x).toLocaleString('th-TH', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
-const f2 = x => (Math.abs(x) < 0.005 ? 0 : x).toLocaleString('th-TH', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+const f1 = x => x == null || isNaN(x) ? '–' : Math.abs(x) >= 100 ? Math.round(x).toLocaleString('th-TH') : (Math.abs(x) < 0.05 ? 0 : x).toLocaleString('th-TH', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const f2 = x => x == null || isNaN(x) ? '–' : (Math.abs(x) < 0.005 ? 0 : x).toLocaleString('th-TH', { maximumFractionDigits: 2, minimumFractionDigits: 2 });
 const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.round(m % 60)).padStart(2, '0')}`;
 
 export const COLORS = { pv: '#f2b705', home: '#3b8fe0', battery: '#2fbf71', grid: '#8a96a3', ev: '#ff7a45' };

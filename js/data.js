@@ -1,5 +1,5 @@
 // Data adapter: the UI only talks to this module.
-// SimAdapter = demo data. ApiAdapter = the home reader (/api/snapshot, /api/history) — drop-in later.
+// SimAdapter = demo data. ApiAdapter = the Home Hub on the LAN (/api/live …).
 import * as Sim from './sim.js';
 
 class SimAdapter {
@@ -8,23 +8,35 @@ class SimAdapter {
   async range(kind) { return Sim.range(kind, new Date()); }
 }
 
-// Maps the reader's /api/snapshot to the same shape. Fields the reader doesn't have yet fall back to null.
+// Live data from the Home Hub on the home LAN (/api/live, /api/today, /api/day, /api/days).
+// Same snapshot shape as the simulator. Used automatically when the page is served by the hub,
+// or with ?api=http://<hub>:8080 . The public GitHub Pages demo never finds a hub and stays on SimAdapter.
+const isoDay = d => new Date(d.getTime() + 7 * 3600e3).toISOString().slice(0, 10);
 class ApiAdapter {
-  constructor(base) { this.base = base.replace(/\/$/, ''); this.demo = false; this.name = 'Sigenergy Modbus (ข้อมูลจริง)'; }
+  constructor(base) { this.base = base.replace(/\/$/, ''); this.demo = false; this.live = true; this.name = 'Home Hub · Sigenergy Modbus (ข้อมูลจริง)'; this.last = null; }
+  async get(path) { const r = await fetch(this.base + path, { cache: 'no-store' }); if (!r.ok) throw new Error(path + ' ' + r.status); return r.json(); }
   async snapshot() {
-    const s = await (await fetch(this.base + '/api/snapshot', { cache: 'no-store' })).json();
-    this.demo = !!s.demo;
-    const strings = Sim.PV_STRINGS.map(cfg => { const r = (s.pv_strings || []).find(x => x.id === cfg.id) || {}; return { ...cfg, kw: r.kw ?? 0, v: r.v ?? 0, a: r.a ?? 0, unused: !cfg.n }; });
-    s.inverter ??= { ac_kw: null, pv_kw: s.power_kw.pv, strings, temp_c: null, firmware: s.plant.firmware, rated_kw: 20 };
+    let s;
+    try { s = await this.get('/api/live'); }
+    catch (e) { if (!this.last) throw e; return { ...this.last, errors: ['เชื่อมต่อ Home Hub ไม่ได้'] }; }
+    this.demo = !!s.demo; this.name = s.demo ? 'Home Hub · โหมดจำลอง' : 'Home Hub · Sigenergy Modbus (ข้อมูลจริง)';
+    const raw = s.pv_strings || s.inverter?.pv_strings || [];
+    const strings = Sim.PV_STRINGS.map(cfg => { const r = raw.find(x => x.id === cfg.id) || {}; return { ...cfg, kw: r.kw ?? 0, v: r.v ?? 0, a: r.a ?? 0, unused: !cfg.n }; });
+    s.inverter = { ac_kw: null, temp_c: null, firmware: s.plant?.firmware, rated_kw: 20, ...(s.inverter || {}), pv_kw: s.inverter?.pv_kw ?? s.power_kw.pv, strings };
     s.gateway ??= { grid_kw: s.power_kw.grid, on_grid: s.plant.grid === 'On grid' };
     s.battery.modules ??= [];
-    return s;
+    for (const k of ['pv', 'home', 'grid_import', 'grid_export', 'battery_charge', 'battery_discharge', 'ev']) s.today_kwh[k] ??= 0;
+    this.last = s; return s;
   }
   async range(kind) {
-    // TODO(reader): add /api/range?kind=… with daily totals + flow matrix. Today: compute from 5-min history.
-    const h = await (await fetch(this.base + '/api/history', { cache: 'no-store' })).json();
-    const pts = h.points.map(p => ({ ...p, m: +p.t.slice(0, 2) * 60 + +p.t.slice(3, 5) }));
-    return { kind, points: pts, ...flowsFromPoints(pts, 5 / 60) };
+    if (kind === 'today' || kind === 'yesterday') {
+      const d = kind === 'today' ? await this.get('/api/today') : await this.get('/api/day?d=' + isoDay(new Date(Date.now() - 864e5)));
+      const pts = d.points || []; const fl = flowsFromPoints(pts, 5 / 60);
+      return { kind, points: pts, E: { ...fl.E, ...(d.E || {}) }, F: fl.F };
+    }
+    const d = await this.get('/api/days?n=' + (kind === '7d' ? 7 : 30));
+    const days = d.days.map(x => ({ ...x, pv: x.pv || 0, home: x.home || 0, ev: x.ev || 0, imp: x.imp || 0 }));
+    return { kind, days, E: d.E, F: d.F };
   }
 }
 
@@ -42,9 +54,17 @@ export function flowsFromPoints(pts, h) {
   return { E, F };
 }
 
-export function createAdapter() {
+/** Hub when available (same origin, or ?api= / saved), otherwise the simulator. */
+export async function createAdapter() {
   const q = new URLSearchParams(location.search);
-  const api = q.get('api') || localStorage.getItem('he.api');
-  return api ? new ApiAdapter(api) : new SimAdapter();
+  if (q.get('demo') === '1') return new SimAdapter();
+  const cand = q.get('api') || localStorage.getItem('he.api') || (location.hostname.endsWith('github.io') || location.protocol === 'file:' ? null : '');
+  if (cand === null) return new SimAdapter();
+  try {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 2500);
+    const r = await fetch(cand.replace(/\/$/, '') + '/api/live', { cache: 'no-store', signal: ctl.signal }); clearTimeout(t);
+    if (r.ok && (await r.json()).power_kw) return new ApiAdapter(cand);
+  } catch (e) { console.info('no hub API, using simulator', e?.message); }
+  return new SimAdapter();
 }
 export { Sim };
