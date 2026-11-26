@@ -90,3 +90,5 @@ main{padding:0 16px}
 .tip{min-width:180px}.tip div{white-space:nowrap}
 .kv-list div b{flex:0 1 auto;max-width:52%}.kv-list div span{flex:1 1 auto}
 html[data-theme=dark] .hero{filter:brightness(.9)}
+.scene-lbl{padding:2px 7px 2px 5px;font-size:10px;gap:4px;background:rgba(255,255,255,.86);box-shadow:0 1px 5px rgba(0,0,0,.16)}
+.scene-lbl i{width:6px;height:6px}.scene-lbl .n{font-size:8.5px;letter-spacing:.3px}

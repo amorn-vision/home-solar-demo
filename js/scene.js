@@ -52,7 +52,7 @@ export async function createScene(el) {
     const t = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), treeMat); t.position.set(x, s * 1.1, z); t.castShadow = true; scene.add(t);
   }
 
-  const house = buildHouse(data); scene.add(house.root);
+  const house = buildHouse(data); if (house.cars) house.cars.visible = false; scene.add(house.root);
 
   // sun arc
   const arcGroup = new THREE.Group(); scene.add(arcGroup);
@@ -87,11 +87,11 @@ export async function createScene(el) {
 
   // floating labels: [key, text, color, labelPos, anchorPos]
   const L = [
-    ['pv', 'SOLAR', '#f5b301', [8.7, 13.2, 5.4], [8.7, 10.2, 5.4]],
-    ['home', 'HOME', '#3b8fe0', [2.6, 6.2, 10.2], [5.0, 5.0, 8.9]],
-    ['grid', 'GRID', '#8a96a3', [20.2, 3.6, 12.2], [19.8, 1.2, 10.0]],
-    ['battery', 'BATTERY', '#2fbf71', [17.6, 2.0, 0.4], [14.48, 0.8, 4.2]],
-    ['ev', 'EV', '#ff7a45', [13.2, 0.6, 14.0], [16.6, 0.9, 7.0]],
+    ['pv', 'SOLAR', '#f5b301', [8.7, 15.2, 4.6], [8.7, 10.2, 5.4]],
+    ['home', 'HOME', '#3b8fe0', [-3.2, 6.8, 8.6], [3.4, 5.0, 8.6]],
+    ['grid', 'GRID', '#8a96a3', [23.6, 3.4, 12.6], [19.8, 1.2, 10.0]],
+    ['battery', 'BATTERY', '#2fbf71', [27.0, 3.0, -1.0], [14.48, 0.8, 4.2]],
+    ['ev', 'EV', '#ff7a45', [14.6, 0.4, 16.2], [16.6, 0.9, 7.0]],
   ];
   const lblEls = {}, leaderMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
   for (const [k, name, col, pos, anchor] of L) {
