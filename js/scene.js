@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/CSS2DRenderer.js';
 import { buildHouse } from './model.js';
+import { evStatus } from './ev.js';
 import { sunPos, sunTimes, bkk } from './sim.js';
 
 // House front (road, local +z) azimuth from house.json site.frontAzimuthDeg (real: ~30° NNE per pre-install PV designer). Sun = NOAA-style calc in sim.js.
@@ -18,7 +19,7 @@ export async function createScene(el) {
   renderer.setPixelRatio(Math.min(devicePixelRatio, MOBILE ? 1.5 : 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = MOBILE ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false; // shadows only re-baked when the sun moves
-  let active = true, onScreen = true, raf = 0, lastT = 0, lastFrame = 0, thr = 0, rotSince = 0, tween = null, dragging = false, endT = 0;
+  let active = true, onScreen = true, raf = 0, lastT = 0, lastFrame = 0, thr = 0, rotSince = 0, pulseUntil = 0, tween = null, dragging = false, endT = 0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   el.appendChild(renderer.domElement);
   const labels = new CSS2DRenderer();
@@ -57,7 +58,7 @@ export async function createScene(el) {
     const t = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), treeMat); t.position.set(x, s * 1.1, z); t.castShadow = true; scene.add(t);
   }
 
-  const house = buildHouse(data); if (house.cars) house.cars.visible = false; scene.add(house.root);
+  const house = buildHouse(data); if (house.cars) house.cars.visible = true; scene.add(house.root); // parked EVs: BYD M6 (left), ATTO 3 (right)
 
   // sun arc
   const arcGroup = new THREE.Group(); scene.add(arcGroup);
@@ -122,7 +123,7 @@ export async function createScene(el) {
   controls.enableDamping = true; controls.target.copy(C); controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 12; controls.maxDistance = 80;
   controls.autoRotate = true; controls.autoRotateSpeed = 0.55; controls.enablePan = false;
   let idleTimer;
-  controls.addEventListener('start', () => { dragging = true; controls.autoRotate = false; clearTimeout(idleTimer); requestRender(); });
+  controls.addEventListener('start', () => { dragging = true; poke(); controls.autoRotate = false; clearTimeout(idleTimer); requestRender(); });
   controls.addEventListener('end', () => { dragging = false; endT = performance.now(); requestRender(); idleTimer = setTimeout(() => { if (mode === '3d') { controls.autoRotate = true; requestRender(); } }, 6000); });
   controls.addEventListener('change', () => requestRender());
   let mode = '3d';
@@ -140,20 +141,23 @@ export async function createScene(el) {
   new ResizeObserver(resize).observe(el); resize();
 
   // ---- render on demand: only while dragging/damping, tweening, or (throttled) auto-rotating ----
-  const ROT_FPS = MOBILE ? 15 : 30, ROT_MAX = MOBILE ? 20000 : 60000; // idle auto-rotate is slow → low fps is visually the same, far less heat
+  const ROT_FPS = MOBILE ? 15 : 30, ROT_MAX = MOBILE ? 20000 : 60000, PULSE_FPS = 12; // charging pulse: 12 fps, pauses with the idle timer
+  const poke = () => { pulseUntil = performance.now() + ROT_MAX + 6000; }; // idle auto-rotate is slow → low fps is visually the same, far less heat
   const lastPos = new THREE.Vector3(), lastQ = new THREE.Quaternion(); window.__renders = window.__renders || 0;
   function requestRender() { if (!raf && active && onScreen && !document.hidden) raf = requestAnimationFrame(frame); }
   function frame(t) {
     raf = 0;
     const busy = dragging || !!tween || performance.now() - endT < 1500;
-    if (!busy && controls.autoRotate && t - lastFrame < 1000 / ROT_FPS - 2) { if (!thr) thr = setTimeout(() => { thr = 0; requestRender(); }, 1000 / ROT_FPS - (t - lastFrame)); return; } // throttle without spinning rAF
+    const pulse = house.ev?.state === 'charging' && performance.now() < pulseUntil, anim = controls.autoRotate || pulse, fps = controls.autoRotate ? ROT_FPS : PULSE_FPS;
+    if (!busy && anim && t - lastFrame < 1000 / fps - 2) { if (!thr) thr = setTimeout(() => { thr = 0; requestRender(); }, 1000 / fps - (t - lastFrame)); return; } // throttle without spinning rAF
+    if (pulse) house.ev.tick(t);
     const dt = lastT ? Math.min(0.25, (t - lastT) / 1000) : 1 / 60; lastT = t; lastFrame = t;
     if (controls.autoRotate) { if (!rotSince) rotSince = t; else if (t - rotSince > ROT_MAX) controls.autoRotate = false; } else rotSince = 0; // idle auto-rotate pauses → 0 fps
     tween?.(t); controls.update(dt);
     const moved = cam.position.distanceToSquared(lastPos) > 1e-6 || cam.quaternion.angleTo(lastQ) > 5e-5;
     lastPos.copy(cam.position); lastQ.copy(cam.quaternion);
     renderer.render(scene, cam); labels.render(scene, cam); window.__renders++;
-    if (tween || dragging || controls.autoRotate || (moved && performance.now() - endT < 1500)) requestRender(); else lastT = 0;
+    if (tween || dragging || anim || (moved && performance.now() - endT < 1500)) requestRender(); else lastT = 0;
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { lastT = 0; requestRender(); } });
   if ('IntersectionObserver' in window) new IntersectionObserver(es => { onScreen = es[0].isIntersecting; if (onScreen) { lastT = 0; requestRender(); } }).observe(el);
@@ -164,6 +168,8 @@ export async function createScene(el) {
   return {
     update(s) {
       const p = s.power_kw;
+      const st = s.ev?.status || evStatus(s.ev); // same status as the EV card
+      if (house.ev?.setState && st !== house.ev.state) { house.ev.setState(st); poke(); renderer.shadowMap.needsUpdate = true; requestRender(); }
       lblEls.pv.querySelector('b').textContent = fmt(p.pv) + ' kW';
       lblEls.home.querySelector('b').textContent = fmt(p.home) + ' kW';
       lblEls.grid.querySelector('b').textContent = (p.grid > 0.05 ? '↓ ' : p.grid < -0.05 ? '↑ ' : '') + fmt(p.grid) + ' kW';
@@ -172,7 +178,7 @@ export async function createScene(el) {
       lblEls.ev.classList.toggle('dim', !(p.ev > 0.05));
     },
     setMode, get mode() { return mode; },
-    setActive(a) { active = a; if (a) { lastT = 0; resize(); requestRender(); } },
+    setActive(a) { active = a; if (a) { lastT = 0; poke(); resize(); requestRender(); } },
     sunNow: () => sunPos(bkk(new Date()), bkk(new Date()).min),
   };
 }

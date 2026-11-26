@@ -12,6 +12,7 @@ const PLAN_COLOR = {
 const INDOOR = new Set(['room', 'hall', 'wet']);
 
 export const MAT = {};
+const std = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: new THREE.Color(c), roughness: 0.85 }, o));
 function setPalette(p = {}) {
   const P = Object.assign({ white: '#ffffff', accent: '#8e9aab', slate: '#5f6b7a', louver: '#8a9099', wood: '#7a4e2d', stone: '#4b4a47', dark: '#555555', metal: '#202224', glass: '#9fd8a8', plinth: '#9b9b98', roofUnder: '#d4d6d8' }, p);
   const std = (c, o = {}) => new THREE.MeshStandardMaterial(Object.assign({ color: new THREE.Color(c), roughness: 0.85 }, o));
@@ -440,16 +441,160 @@ export function buildHouse(data) {
   const f1 = floorGroups[1];
   const col = (x, z, y1 = 3.45) => f1.add(bb(x - 0.12, 0, z - 0.12, x + 0.12, y1, z + 0.12, MAT.column));
   col(10.60, 8.78); col(17.23, 8.78); col(17.23, 2.12); 
-  const cars = new THREE.Group(); cars.name = 'cars'; cars.visible = false; cars.userData.floor = 1;
-  const car = (x, color) => {
-    const c = new THREE.Group();
-    const m = new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.3 });
-    c.add(box(1.8, 0.7, 4.4, m, 0, 0.55, 0));
-    c.add(box(1.6, 0.55, 2.2, new THREE.MeshStandardMaterial({ color: 0x223038, roughness: 0.2 }), 0, 1.15, -0.2));
-    c.position.set(x, 0.2, 6.3); return c;
+  // ---------- parked EVs (low-poly, geometry merged per material → 7 draw calls per car) + EV charger cable ----------
+  const cars = new THREE.Group(); cars.name = 'cars'; cars.visible = data.ev?.carsVisible ?? true; cars.userData.floor = 1;
+  const evCfg = data.ev || {};
+  const CM = {
+    body: new THREE.MeshStandardMaterial({ color: 0xf4f3ef, roughness: 0.28, metalness: 0.3 }), // pearl white
+    glass: new THREE.MeshStandardMaterial({ color: 0x0d1115, roughness: 0.06, metalness: 0.6 }), // near-black tint
+    tyre: new THREE.MeshStandardMaterial({ color: 0x141516, roughness: 0.9 }),
+    rim: new THREE.MeshStandardMaterial({ color: 0x1e2023, roughness: 0.18, metalness: 0.55 }), // gloss-black alloy wheels
+    chrome: new THREE.MeshStandardMaterial({ color: 0xc8ccd1, roughness: 0.25, metalness: 0.9 }),
+    trim: new THREE.MeshStandardMaterial({ color: 0x1c1d1f, roughness: 0.6 }),
+    face: new THREE.MeshStandardMaterial({ color: 0xd6dadf, roughness: 0.35, metalness: 0.35 }), // machined silver wheel faces (ATTO 3)
+    head: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xe8f2ff, emissiveIntensity: 0.6, roughness: 0.2 }),
+    tail: new THREE.MeshStandardMaterial({ color: 0xb3121a, emissive: 0x9a0d12, emissiveIntensity: 0.5, roughness: 0.3 }),
   };
-  cars.add(car(15.85, 0xbfc3c7)); cars.add(car(18.85, 0x2f7fc1));
+  const mergeGeos = list => { // non-indexed position+normal merge (no deps)
+    const gs = list.map(g => { const n = g.index ? g.toNonIndexed() : g; return n; });
+    let len = 0; for (const g of gs) len += g.attributes.position.count * 3;
+    const pos = new Float32Array(len), nor = new Float32Array(len); let o = 0;
+    for (const g of gs) { pos.set(g.attributes.position.array, o); nor.set(g.attributes.normal.array, o); o += g.attributes.position.count * 3; }
+    const m = new THREE.BufferGeometry(); m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); return m;
+  };
+  const extr = (pts, w, z0 = 0) => { const sh = new THREE.Shape(pts.map(([x, y]) => new THREE.Vector2(x, y))); const g = new THREE.ExtrudeGeometry(sh, { depth: w - 0.06, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 1, curveSegments: 1 }); g.translate(0, 0, -(w - 0.06) / 2 + z0); return g; };
+  const bx = (sx, sy, sz, x, y, z) => new THREE.BoxGeometry(sx, sy, sz).translate(x, y, z);
+  // spec: {model, kind:'mpv'|'suv', L, W, H, wb, x, z}; local: +x = car front, +z = car right; placed nose-in (front → house, -z)
+  const tumble = (geo, belt, H, amt = 0.13) => { const a = geo.attributes.position; for (let i = 0; i < a.count; i++) { const k = Math.max(0, Math.min(1, (a.getY(i) - belt) / (H - belt))); a.setZ(i, a.getZ(i) * (1 - amt * k)); } return geo; };
+  function buildCar(c) {
+    const { L, W, H, wb } = c, hl = L / 2, mpv = c.kind === 'mpv', belt = mpv ? 1.0 : 1.0;
+    const P = { body: [], glass: [], tyre: [], rim: [], face: [], trim: [], chrome: [], head: [], tail: [] };
+    // ---- body shell (side profile extruded across the width) ----
+    const body = mpv // BYD M6: one-box-ish nose, short sloping hood, upright rear
+      ? [[-hl, 0.36], [-hl + 0.02, belt], [hl - 1.22, belt + 0.04], [hl - 0.22, 0.84], [hl - 0.02, 0.66], [hl, 0.36], [hl - 0.16, 0.22], [-hl + 0.14, 0.22]]
+      : [[-hl, 0.4], [-hl + 0.05, belt + 0.06], [hl - 1.05, belt + 0.02], [hl - 0.2, 0.9], [hl, 0.66], [hl, 0.38], [hl - 0.16, 0.24], [-hl + 0.14, 0.24]];
+    P.body.push(extr(body, W));
+    // ---- glasshouse: one continuous dark band (black pillars), tumblehome toward the roof ----
+    const ws = mpv ? hl - 1.22 : hl - 1.05; // windshield base x
+    const cab = mpv
+      ? [[-hl + 0.05, belt], [-hl + 0.1, H - 0.08], [hl - 1.95, H - 0.03], [ws, belt + 0.04]] // flat roof, slight drop at rear; steep-raked screen
+      : [[-hl + 0.12, belt + 0.06], [-hl + 0.4, H - 0.08], [hl - 1.8, H - 0.04], [ws, belt + 0.02]];
+    P.glass.push(tumble(extr(cab, W - 0.08), belt, H));
+    // roof: body-colour side rails + dark panoramic glass centre
+    const r0 = mpv ? -hl + 0.12 : -hl + 0.42, r1 = mpv ? hl - 1.95 : hl - 1.8, rw = (W - 0.08) * 0.87;
+    for (const sz of [-1, 1]) {
+      if (mpv) P.body.push(bx(r1 - r0, 0.05, 0.16, (r0 + r1) / 2, H - 0.02, sz * (rw / 2 - 0.08)));
+      else { P.body.push(bx(r1 - r0, 0.05, 0.16, (r0 + r1) / 2, H - 0.02, sz * (rw / 2 - 0.08))); P.chrome.push(bx(r1 - r0 - 0.1, 0.045, 0.04, (r0 + r1) / 2, H + 0.06, sz * (rw / 2 - 0.1))); for (const ex of [r0 + 0.08, r1 - 0.08]) P.trim.push(bx(0.08, 0.06, 0.04, ex, H + 0.025, sz * (rw / 2 - 0.1))); } // ATTO 3: silver roof rails
+    }
+    if (!mpv) for (const sz of [-1, 1]) P.body.push(new THREE.ExtrudeGeometry(new THREE.Shape([[-hl + 0.1, belt + 0.06], [-0.75, belt + 0.02], [-0.75, belt + 0.04], [-hl + 0.3, belt + 0.24], [-hl + 0.16, belt + 0.26]].map(([x, y]) => new THREE.Vector2(x, y))), { depth: 0.02, bevelEnabled: false }).translate(0, 0, sz > 0 ? W / 2 - 0.075 : -W / 2 + 0.055)); // ATTO 3: window line kicks up at the rear
+    if (!mpv) P.trim.push(extr([[-hl + 0.5, H], [-hl + 0.72, H], [-hl + 0.56, H + 0.08]], 0.09)); // shark-fin antenna
+    P.glass.push(bx((r1 - r0) * 0.86, 0.04, rw - 0.3, (r0 + r1) / 2 + 0.05, H - 0.015, 0));
+    // chrome window-line trims (top + bottom of the glass band), both sides
+    for (const sz of [-1, 1]) {
+      P.chrome.push(bx(ws - (-hl + 0.12), 0.022, 0.02, (ws - hl + 0.12) / 2, belt + 0.035, sz * (W / 2 - 0.035)));
+      P.chrome.push(bx(r1 - r0, 0.02, 0.02, (r0 + r1) / 2, H - 0.07, sz * (rw / 2 + 0.005)));
+      if (mpv) P.chrome.push(bx(L - 1.2, 0.025, 0.02, -0.1, 0.27, sz * (W / 2 + 0.012))); // sill strip
+      else { // ATTO 3: black lower sill + silver strip along the lower doors kicking up toward the rear
+        P.trim.push(bx(wb - 0.78, 0.16, 0.03, 0, 0.32, sz * (W / 2 + 0.012)));
+        P.chrome.push(bx(1.7, 0.028, 0.02, 0.2, 0.43, sz * (W / 2 + 0.016)));
+        P.chrome.push(bx(0.42, 0.028, 0.02, 0, 0, 0).rotateZ(-0.42).translate(-0.83, 0.51, sz * (W / 2 + 0.016)));
+      }
+      for (const hx of mpv ? [0.35, -0.75] : [0.3, -0.7]) P.chrome.push(bx(0.2, 0.03, 0.02, hx, belt - 0.07, sz * (W / 2 + 0.012))); // flush door handles
+      P.body.push(bx(0.16, 0.1, 0.2, ws + 0.05, belt + 0.12, sz * (W / 2 + 0.07))); P.trim.push(bx(0.1, 0.04, 0.12, ws + 0.06, belt + 0.05, sz * (W / 2 + 0.03))); // mirrors (body colour, black base)
+    }
+    // rear: body-colour roof spoiler with black lip, full-width LED bar, BYD lettering, reflectors, chrome strip
+    const sp = mpv ? -hl + 0.2 : -hl + 0.42; P.body.push(bx(0.32, 0.06, rw, sp, H + 0.005, 0)); P.trim.push(bx(0.04, 0.025, rw - 0.05, sp - 0.16, H - 0.035, 0));
+    P.tail.push(bx(0.04, mpv ? 0.05 : 0.06, W - 0.16, -hl - 0.005, mpv ? belt + 0.02 : belt + 0.02, 0));
+    for (const sz of [-1, 1]) { P.tail.push(bx(0.04, 0.16, 0.1, -hl - 0.006, belt - 0.07, sz * (W / 2 - 0.1))); P.tail.push(bx(0.03, 0.03, 0.18, -hl - 0.006, 0.42, sz * (W / 2 - 0.2))); }
+    if (mpv) { P.chrome.push(bx(0.03, 0.05, 0.36, -hl - 0.008, belt - 0.16, 0)); P.chrome.push(bx(0.03, 0.022, W - 0.5, -hl - 0.007, 0.34, 0)); } // BYD lettering + lower chrome strip
+    else { // ATTO 3: 'BUILD YOUR DREAMS' lettering above the bar, vertical bumper reflectors, silver skid plate
+      P.chrome.push(bx(0.025, 0.03, 0.9, -hl - 0.008, belt + 0.11, 0));
+      for (const sz of [-1, 1]) P.tail.push(bx(0.03, 0.14, 0.035, -hl - 0.006, 0.43, sz * (W / 2 - 0.12)));
+      P.chrome.push(bx(0.04, 0.05, W - 0.9, -hl - 0.008, 0.25, 0));
+    }
+    P.trim.push(bx(0.04, 0.12, W - 0.4, -hl - 0.004, 0.27, 0)); // rear diffuser/bumper base
+    if (!mpv) for (const sz of [-1, 1]) { // ATTO 3: silver C-pillar panel with shark-gill dot pattern
+      const cz = sz * (W / 2 - 0.1), cx0 = -hl + 0.52;
+      P.chrome.push(bx(0.4, 0.24, 0.02, 0, 0, 0).rotateZ(0.25).translate(cx0, belt + 0.3, cz));
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 4; j++) P.trim.push(bx(0.035, 0.035, 0.012, cx0 - 0.12 + j * 0.08 - i * 0.03, belt + 0.22 + i * 0.07 + j * 0.02, cz + sz * 0.012));
+    }
+    // front: slim swept LED lamps joined by a chrome bar with BYD letters; black lower grille; vertical 'fang' intakes
+    const fy = mpv ? 0.72 : 0.78;
+    for (const sz of [-1, 1]) {
+      P.head.push(bx(0.05, 0.055, 0.42, hl + 0.004, fy, sz * (W / 2 - 0.27))); P.head.push(bx(0.32, 0.045, 0.02, hl - 0.16, fy + 0.02, sz * (W / 2 + 0.01))); // wrap-around (swept back)
+      if (mpv) { P.trim.push(bx(0.05, 0.3, 0.13, hl + 0.004, 0.42, sz * (W / 2 - 0.16))); P.chrome.push(bx(0.04, 0.03, 0.2, hl + 0.008, 0.27, sz * (W / 2 - 0.22))); } // fangs + chrome corners
+    }
+    P.chrome.push(bx(0.03, 0.03, W - 0.95, hl + 0.006, fy, 0)); P.chrome.push(bx(0.035, 0.06, 0.26, hl + 0.01, fy, 0)); // bar + BYD letters
+    if (mpv) P.trim.push(bx(0.05, 0.14, W - 0.7, hl + 0.003, 0.36, 0)); // lower grille
+    else { // ATTO 3: big black trapezoid mesh grille, plate area, body-colour chin with silver lip
+      const tz = W / 2 - 0.2;
+      P.trim.push(new THREE.CylinderGeometry(tz - 0.2, tz - 0.02, 0.26, 4, 1).rotateY(Math.PI / 4).scale(0.06 / (tz * 1.41), 1, 1).translate(hl + 0.0, 0.48, 0));
+      for (let i = 0; i < 3; i++) P.rim.push(bx(0.01, 0.012, W - 0.7 - i * 0.08, hl + 0.025, 0.41 + i * 0.065, 0)); // mesh lines
+      P.head.push(bx(0.02, 0.11, 0.34, hl + 0.03, 0.49, 0)); // plate area (light)
+      P.chrome.push(bx(0.04, 0.025, W - 0.6, hl - 0.03, 0.25, 0)); // silver lower lip
+    }
+    // wheels: gloss-black split Y-spoke alloys (~18"), black cap, black tyres; set flush with the body side + dark arch gap
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      const x = sx * wb / 2 + (mpv ? 0.06 : 0.03), zc = sz * (W / 2 - 0.08), face = zc + sz * 0.116;
+      P.tyre.push(new THREE.CylinderGeometry(0.345, 0.345, 0.225, 18).rotateX(Math.PI / 2).translate(x, 0.345, zc));
+      P.rim.push(new THREE.CylinderGeometry(0.245, 0.245, 0.012, 18).rotateX(Math.PI / 2).translate(x, 0.345, face - sz * 0.004));
+      P.trim.push(new THREE.CylinderGeometry(0.228, 0.228, 0.01, 16).rotateX(Math.PI / 2).translate(x, 0.345, face + sz * 0.001));
+      if (mpv) for (let k = 0; k < 5; k++) for (const d of [-0.11, 0.11]) P.rim.push(new THREE.BoxGeometry(0.035, 0.2, 0.014).translate(0, 0.125, 0).rotateZ(k * Math.PI * 2 / 5 + d).translate(x, 0.345, face + sz * 0.006));
+      else for (let k = 0; k < 5; k++) for (const d of [-0.09, 0.09]) P.face.push(new THREE.BoxGeometry(0.04, 0.2, 0.014).translate(0, 0.125, 0).rotateZ(0.18 * sz).rotateZ(k * Math.PI * 2 / 5 + d).translate(x, 0.345, face + sz * 0.006)); // ATTO 3: 5 twisted split spokes, machined silver faces on a black wheel
+      P.rim.push(new THREE.CylinderGeometry(0.06, 0.06, 0.02, 10).rotateX(Math.PI / 2).translate(x, 0.345, face + sz * 0.01));
+      const arch = new THREE.RingGeometry(0.355, mpv ? 0.405 : 0.46, 14, 1, mpv ? 0 : -0.15, mpv ? Math.PI : Math.PI + 0.3); // ATTO 3: thick black arch cladding if (sz < 0) arch.rotateY(Math.PI); P.trim.push(arch.translate(x, 0.345, sz * (W / 2 + 0.032)));
+    }
+    const g = new THREE.Group(); g.name = 'car:' + c.model;
+    const bodyMat = c.color ? new THREE.MeshStandardMaterial({ color: new THREE.Color(c.color), roughness: mpv ? 0.28 : 0.34, metalness: mpv ? 0.3 : 0.4 }) : CM.body;
+    for (const [k, arr] of Object.entries(P)) if (arr.length) { const m = new THREE.Mesh(mergeGeos(arr), k === 'body' ? bodyMat : CM[k]); m.castShadow = k === 'body' || k === 'glass'; m.receiveShadow = k === 'body'; g.add(m); }
+    // charge port: M6 = round flap on the LEFT rear quarter (behind rear door, above wheel); ATTO 3 = square flap on the RIGHT front fender (behind the front arch, near the A-pillar base)
+    const fx = mpv ? -wb / 2 + 0.06 + 0.05 : wb / 2 + 0.03 - 0.5, fyp = mpv ? 0.9 : 0.86, side = mpv ? -1 : 1;
+    const flapGeo = mpv ? new THREE.CylinderGeometry(0.075, 0.075, 0.012, 16).rotateX(Math.PI / 2) : new THREE.BoxGeometry(0.14, 0.13, 0.012);
+    const flap = new THREE.Mesh(flapGeo.translate(fx, fyp, side * (W / 2 + 0.018)), bodyMat); g.add(flap);
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(mpv ? 0.17 : 0.16, 0.006, 0.006).translate(fx, fyp - 0.075, side * (W / 2 + 0.02)), CM.trim)); // flap shut-line hint
+    g.rotation.y = Math.PI / 2; g.position.set(c.x, 0.2, c.z); g.userData = { car: c };
+    // local (x, y, z) → world (c.x + z, y, c.z - x) for rotation.y = +90°
+    g.userData.port = new THREE.Vector3(c.x + side * (W / 2 + 0.03), 0.2 + fyp, c.z - fx);
+    g.userData.portN = new THREE.Vector3(side, 0, 0); // outward normal of the flap
+    return g;
+  }
+  const carSpecs = evCfg.cars || [
+    { id: 'left', model: 'BYD M6', kind: 'mpv', color: '#f4f3ef', L: 4.71, W: 1.81, H: 1.69, wb: 2.8, x: 15.85, z: 6.2 },
+    { id: 'right', model: 'BYD ATTO 3', kind: 'suv', color: '#c9cbcc', L: 4.455, W: 1.875, H: 1.615, wb: 2.72, x: 18.85, z: 6.2 }];
+  const carObjs = carSpecs.map(c => { const o = buildCar(c); cars.add(o); return o; });
   f1.add(cars);
+  // EV charger (wall unit) + cable + charging pulse
+  const ev = { state: 'off' };
+  if (evCfg.charger) {
+    const [cx, cy, cz] = evCfg.charger.pos;
+    const wb = new THREE.Group(); wb.name = 'ev-charger';
+    wb.add(bb(cx, cy - 0.38, cz - 0.24, cx + 0.17, cy + 0.38, cz + 0.24, std('#e9ebee', { roughness: 0.4 })));
+    wb.add(bb(cx + 0.17, cy + 0.05, cz - 0.13, cx + 0.18, cy + 0.25, cz + 0.13, std('#20262c', { roughness: 0.2 })));
+    const led = new THREE.MeshBasicMaterial({ color: 0x9aa3ab }); wb.add(bb(cx + 0.17, cy - 0.06, cz - 0.1, cx + 0.181, cy - 0.03, cz + 0.1, led));
+    wb.add(bb(cx + 0.06, cy - 0.5, cz - 0.05, cx + 0.16, cy - 0.38, cz + 0.05, std('#1c1d1f'))); // cable gland
+    f1.add(wb);
+    const port0 = new THREE.Vector3(cx + 0.11, cy - 0.5, cz);
+    // fixed default car (Modbus has no vehicle identity): ev.default_car = car id, else the car whose real charge port is nearest the charger
+    const nearest = carObjs.reduce((a, o) => (o.userData.port.distanceTo(port0) < a.userData.port.distanceTo(port0) ? o : a));
+    const target = carObjs.find(o => o.userData.car.id && o.userData.car.id === evCfg.default_car) || nearest;
+    const pp = target.userData.port, pn = target.userData.portN; // nearest car by its real charge-port position
+    const curve = new THREE.CatmullRomCurve3([port0, new THREE.Vector3(port0.x + 0.08, 0.1, port0.z + 0.15), new THREE.Vector3((port0.x + pp.x) / 2, 0.06, (port0.z + pp.z) / 2), new THREE.Vector3(pp.x + pn.x * 0.15, 0.35, pp.z), pp]);
+    const cable = new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.018, 6, false), std('#111214', { roughness: 0.7 })); cable.name = 'ev-cable'; cable.castShadow = false;
+    const plug = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.16), std('#1b1c1e')); plug.position.copy(pp).addScaledVector(pn, 0.05); plug.rotation.y = Math.PI / 2;
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0x35e07a, transparent: true, opacity: 0.55, depthWrite: false });
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 10), haloMat); halo.position.copy(pp);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0x35e07a, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.26, 28), ringMat); ring.position.copy(pp).addScaledVector(pn, 0.03); ring.rotation.y = -Math.PI / 2;
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, 0.5), haloMat); bar.position.set(pp.x + pn.x * 0.005, 1.12, target.userData.car.z + 0.2); // green strip on the car's side glass (charging indicator)
+    const grp = new THREE.Group(); grp.name = 'ev-session'; grp.add(cable, plug); const glow = new THREE.Group(); glow.add(halo, ring, bar); grp.add(glow); cars.add(grp);
+    Object.assign(ev, {
+      car: target.userData.car, charger: port0, port: pp,
+      setState(s) { ev.state = s === 'charging' || s === 'plugged' ? s : 'off'; grp.visible = ev.state !== 'off'; glow.visible = ev.state === 'charging'; led.color.setHex(ev.state === 'charging' ? 0x35e07a : ev.state === 'plugged' ? 0x3b8fe0 : 0x9aa3ab); ev.tick(0); },
+      tick(t) { const k = 0.5 + 0.5 * Math.sin(t / 1000 * Math.PI * 1.6); halo.scale.setScalar(1 + 0.7 * k); haloMat.opacity = 0.65 - 0.45 * k; ring.scale.setScalar(1 + 0.5 * k); ringMat.opacity = 0.9 - 0.6 * k; },
+    });
+    ev.setState(evCfg.defaultState || 'off');
+  }
+
   boundary.add(bb(3.10, 0, 0.12, 3.20, 1.8, 2.0, MAT.concrete));
   boundary.add(bb(10.70, 0, 0.12, 10.80, 1.8, 2.0, MAT.concrete));
 
@@ -540,7 +685,7 @@ export function buildHouse(data) {
   roofPivot.add(solar);
   roofGroup.userData.solar = solar;
 
-  return { root, pickables, floorGroups, roofGroup, roomMeshes, solar, cars, boundary, planWalls };
+  return { root, pickables, floorGroups, roofGroup, roomMeshes, solar, cars, boundary, planWalls, ev };
 }
 
 /** Direction (local model coords) of a compass azimuth/elevation. Local +z = house front (road) at frontAz; local +x = frontAz-90. */

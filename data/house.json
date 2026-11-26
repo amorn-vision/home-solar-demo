@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "บ้าน 3 ชั้น — โมเดลร่างแรก",
-    "version": "0.10.4",
+    "version": "0.10.5",
     "source": "แบบร่างสถาปัตย์ปี 2558 (ผัง + รูปด้าน 4 ด้าน + รูปตัด, บ้านจริงมีการเปลี่ยนแปลงบางส่วน) + ภาพโดรนด้านหน้า + รูปถ่ายจริงรอบบ้าน 5 รูป (ใช้แทนแบบในส่วนที่ต่างกัน)",
     "units": "meters",
     "coords": "x = ซ้าย→ขวา (มองจากถนน) จากขอบที่ดินซ้าย, z = หลัง→หน้า จากขอบที่ดินด้านหลัง (ถนนอยู่ด้าน z มาก), y = ความสูงจากระดับถนน ±0.00",
@@ -492,11 +492,11 @@
     {
       "id": "hs-ev",
       "type": "ev_charger",
-      "label": "ที่ชาร์จรถ EV",
+      "label": "ที่ชาร์จรถ EV (Sigen EVDC 25)",
       "floor": 1,
       "pos": [
-        14.48,
-        1.3,
+        14.78,
+        1.55,
         6.8
       ],
       "placeholder": true
@@ -2134,5 +2134,49 @@
     "lon": 100.5,
     "tz": "Asia/Bangkok",
     "note": "หน้าบ้าน (ถนน) หันประมาณ NNE 30° ตามภาพจากโปรแกรมออกแบบก่อนติดตั้ง; แกนยาวบ้าน WNW–ESE; โรงจอดรถอยู่ฝั่ง WNW"
+  },
+  "ev": {
+    "carsVisible": true,
+    "defaultState": "off",
+    "default_car": "left",
+    "charger": {
+      "model": "Sigen EVDC 25",
+      "pos": [
+        14.53,
+        1.25,
+        6.8
+      ],
+      "note": "ที่ชาร์จ DC ติดผนังซ้ายโรงจอดรถ (ตำแหน่งประมาณ)"
+    },
+    "cars": [
+      {
+        "id": "left",
+        "model": "BYD M6",
+        "color": "#f4f3ef",
+        "kind": "mpv",
+        "L": 4.71,
+        "W": 1.81,
+        "H": 1.69,
+        "wb": 2.8,
+        "x": 15.85,
+        "z": 6.2,
+        "port": "round flap, left rear quarter"
+      },
+      {
+        "id": "right",
+        "model": "BYD ATTO 3",
+        "color": "#c9cbcc",
+        "kind": "suv",
+        "L": 4.455,
+        "W": 1.875,
+        "H": 1.615,
+        "wb": 2.72,
+        "x": 18.85,
+        "z": 6.2,
+        "port": "square flap, right front fender"
+      }
+    ],
+    "note": "รถจอดหันหัวเข้าบ้าน; สายชาร์จต่อไปคันที่ใกล้ที่ชาร์จที่สุด (คันซ้าย BYD M6) — รูปทรงแบบย่อ",
+    "default_car_note": "Modbus gives no vehicle identity, so the charger session always shows on ONE fixed car: id of a car in ev.cars, or \"nearest\" = the car whose real charge port is closest to the charger. Default: left (BYD M6, round flap on its left-rear quarter, nearest the charger)."
   }
 }

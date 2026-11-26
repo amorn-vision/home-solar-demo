@@ -1,4 +1,5 @@
 import { createAdapter, Sim } from './data.js';
+import { applyEv } from './ev.js';
 import { lineChart, barChart, sankey, miniArea, COLORS, f1, f2, hhmm } from './charts.js';
 
 const $ = s => document.querySelector(s);
@@ -194,7 +195,7 @@ async function render() {
 }
 let tick = 0;
 async function poll() {
-  try { S.snap = await ds.snapshot(); } catch (e) { console.warn(e); }
+  try { S.snap = applyEv(await ds.snapshot()); } catch (e) { console.warn(e); } // EV status shared by card + 3D (+ ?ev= override)
   if (S.tab === 'energy' || S.tab === 'device') { // charts: refresh at most once a minute so tooltips stay put
     if (tick++ % Math.max(1, Math.round(60 / S.refresh))) { if (S.snap) $('#clock').textContent = S.snap.ts.slice(11, 16); return; }
   }
