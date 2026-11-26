@@ -14,7 +14,8 @@ class ApiAdapter {
   async snapshot() {
     const s = await (await fetch(this.base + '/api/snapshot', { cache: 'no-store' })).json();
     this.demo = !!s.demo;
-    s.inverter ??= { ac_kw: null, pv_kw: s.power_kw.pv, strings: [], temp_c: null, firmware: s.plant.firmware, rated_kw: 20 };
+    const strings = Sim.PV_STRINGS.map(cfg => { const r = (s.pv_strings || []).find(x => x.id === cfg.id) || {}; return { ...cfg, kw: r.kw ?? 0, v: r.v ?? 0, a: r.a ?? 0, unused: !cfg.n }; });
+    s.inverter ??= { ac_kw: null, pv_kw: s.power_kw.pv, strings, temp_c: null, firmware: s.plant.firmware, rated_kw: 20 };
     s.gateway ??= { grid_kw: s.power_kw.grid, on_grid: s.plant.grid === 'On grid' };
     s.battery.modules ??= [];
     return s;

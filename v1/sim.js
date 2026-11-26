@@ -1,7 +1,7 @@
 // Browser port of reader/simulator.py (keep constants in sync). Demo data only.
 (function () {
   const LAT = 13.75, LON = 100.5;
-  const CFG = { pv_kwp: 10.4, inverter_kw: 20, batt_kwh: 20, batt_max_kw: 10, soc_min: 10, soc_max: 100, ev_kw: 5 };
+  const CFG = { pv_kwp: 20.8, inverter_kw: 20, batt_kwh: 20, batt_max_kw: 10, soc_min: 10, soc_max: 100, ev_kw: 5 };
   // deterministic RNG per day (mulberry32)
   function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   function bkkParts(d) { // Bangkok wall clock from any Date
@@ -19,7 +19,7 @@
   }
   function dayKey(p) { return Date.UTC(p.y, p.m, p.d) / 864e5; }
   function cloudParams(p) { const r = rng(dayKey(p) * 7919); const base = 0.85 + 0.15 * r(); const w = []; for (let k = 0; k < 4; k++) w.push([0.02 + 0.06 * r(), 45 + 135 * r(), 6.28 * r()]); return { base, w, r2: r() }; }
-  function pvKw(p, m, cp) { const e = sunElev(p, m); if (e <= 0) return 0; let f = cp.base; for (const [a, per, ph] of cp.w) f -= a * (0.5 + 0.5 * Math.sin(m / per * 6.283 + ph)); f = Math.max(0.35, Math.min(1, f)); return Math.min(CFG.inverter_kw, CFG.pv_kwp * 0.82 * Math.pow(Math.sin(e * Math.PI / 180), 1.15) * f); }
+  function pvKw(p, m, cp) { const e = sunElev(p, m); if (e <= 0) return 0; let f = cp.base; for (const [a, per, ph] of cp.w) f -= a * (0.5 + 0.5 * Math.sin(m / per * 6.283 + ph)); f = Math.max(0.35, Math.min(1, f)); return Math.min(CFG.inverter_kw, CFG.pv_kwp * 1.12 * Math.pow(Math.sin(e * Math.PI / 180), 1.3) * f); }
   function loadKw(p, m, cp) { const h = m / 60, we = p.dow === 0 || p.dow === 6; const g = (c, w) => Math.exp(-(((h - c) / w) ** 2));
     return Math.max(0.3, 0.55 + 1.2 * g(7, 0.8) + (we ? 1.6 : 0.9) * g(13, 2.5) + 2.8 * g(20.5, 1.6) + ((h >= 22 || h < 5) ? 1.1 : 0) + 0.25 * Math.sin(m / 7 + cp.r2 * 6) + 0.15 * Math.sin(m / 3.1)); }
   function evWin(p) { return (p.dow === 0 || p.dow === 6) ? [600, 720] : [690, 780]; }

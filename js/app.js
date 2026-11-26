@@ -115,7 +115,7 @@ $('#viewSeg').onclick = e => { if (e.target.dataset.v) { S.view = e.target.datas
 function devices(s) {
   const b = s.battery, p = s.power_kw;
   return [
-    { id: 'inverter', ic: '☀️', name: 'SigenStor EC 20.0 TP', type: 'อินเวอร์เตอร์ไฮบริด 3 เฟส 20 kW', right: kw(s.inverter.pv_kw) + ' kW', sub: s.plant.running_state_th },
+    { id: 'inverter', ic: '☀️', name: 'SigenStor EC 20.0 TP', type: `อินเวอร์เตอร์ 20 kW · แผง ${Sim.CFG.panels} แผง ${f2(Sim.CFG.pv_kwp)} kWp`, right: kw(s.inverter.pv_kw) + ' kW', sub: s.plant.running_state_th },
     { id: 'battery', ic: '🔋', name: 'SigenStor BAT 10.0 × 2', type: 'แบตเตอรี่ 20 kWh', right: Math.round(b.soc_pct) + '%', sub: (p.battery > 0.05 ? 'ชาร์จ ' : p.battery < -0.05 ? 'จ่าย ' : 'พัก ') + kw(p.battery) + ' kW' },
     { id: 'ev', ic: '🚗', name: 'SigenStor EVDC 25', type: 'ที่ชาร์จรถ DC 25 kW', right: kw(p.ev) + ' kW', sub: s.ev.state_th },
     { id: 'gateway', ic: '🔌', name: 'Sigen Gateway Home TP 30K', type: 'เกตเวย์ / มิเตอร์กริด 3 เฟส', right: kw(p.grid) + ' kW', sub: p.grid > 0.05 ? 'ซื้อไฟ' : p.grid < -0.05 ? 'ขายไฟ' : 'สมดุล' },
@@ -133,8 +133,8 @@ async function renderDevice(s) {
     const iv = s.inverter;
     html += `<div class="n">${kw(iv.pv_kw)}<small>kW</small></div><div class="sub" style="margin:-4px 0 8px">กำลังผลิตโซลาร์ตอนนี้</div><span class="state-pill">${s.plant.running_state_th}</span></div></div>
       <div class="card"><div class="card-h"><b>การผลิตวันนี้</b><span class="muted">kW</span></div><div id="devChart"></div></div>
-      <div class="card"><table class="tbl">${row('กำลังไฟ AC', kw(iv.ac_kw) + ' kW')}${row('PV รวม', kw(iv.pv_kw) + ' kW')}${row('ผลิตวันนี้', f1(s.today_kwh.pv) + ' kWh')}${row('ผลิตรวม', Math.round(s.total_kwh.pv).toLocaleString('th-TH') + ' kWh')}
-      ${iv.strings.map((x, i) => row(`PV${i + 1} <small>${i < 3 ? '· 6 แผง' : '· ไม่ได้ใช้'}</small>`, `${f2(x.kw)} kW · ${Math.round(x.v)} V · ${f1(x.a)} A`)).join('')}
+      <div class="card"><table class="tbl">${row('กำลังไฟ AC', kw(iv.ac_kw) + ' kW')}${row('PV รวม', kw(iv.pv_kw) + ' kW')}${row('แผงทั้งหมด', `${Sim.CFG.panels} แผง · ${f2(Sim.CFG.pv_kwp)} kWp`)}${row('ผลิตวันนี้', f1(s.today_kwh.pv) + ' kWh')}${row('ผลิตรวม', Math.round(s.total_kwh.pv).toLocaleString('th-TH') + ' kWh')}
+      ${iv.strings.map((x, i) => row(x.unused || !x.n ? `${x.id || 'PV' + (i + 1)} <small>· ไม่ได้ใช้</small>` : `${x.id} <small>${x.brand} ${x.w}W × ${x.n} · ${f2(x.kwp)} kWp</small>`, x.unused || !x.n ? '0.00 kW' : `${f2(x.kw)} kW · ${Math.round(x.v)} V · ${f1(x.a)} A`)).join('')}
       ${row('อุณหภูมิ', iv.temp_c != null ? f1(iv.temp_c) + ' °C' : '–')}${row('Firmware', iv.firmware || '–')}${row('กำลังพิกัด', '20 kW')}</table></div>`;
   } else if (id === 'battery') {
     const b = s.battery, C = 2 * Math.PI * 52;
@@ -162,7 +162,7 @@ async function renderDevice(s) {
 function renderSettings() {
   $('#sysInfo').innerHTML = [
     ['แหล่งข้อมูล', ds.name], ['การเชื่อมต่อจริง', 'Modbus TCP ผ่านกล่องฮับในบ้าน (อ่านอย่างเดียว) · เร็ว ๆ นี้'],
-    ['แผงโซลาร์', `${Sim.CFG.panels} แผง · ~${Sim.CFG.pv_kwp} kWp (ประมาณ)`], ['ทิศบ้านในโมเดล', 'สมมติหน้าบ้านหันทิศใต้'],
+    ['แผงโซลาร์', `${Sim.CFG.panels} แผง · ${f2(Sim.CFG.pv_kwp)} kWp`], ['สตริง', Sim.PV_STRINGS.filter(x => x.n).map(x => `${x.id} ${x.brand} ${x.w}W×${x.n}`).join(' · ') + ' · PV4 ไม่ได้ใช้'], ['ทิศบ้านในโมเดล', 'สมมติหน้าบ้านหันทิศใต้'],
     ['โมเดลบ้าน', 'ร่างแรกจากแบบ · ตำแหน่งอุปกรณ์เป็นตัวอย่าง'], ['เวอร์ชัน', 'v2 · ต้นแบบหน้าจอ'],
   ].map(([k, v]) => `<div><b style="font-weight:500">${k}</b><span>${v}</span></div>`).join('');
 }

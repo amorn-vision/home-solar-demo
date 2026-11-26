@@ -1,7 +1,14 @@
 // Simulator for the owner's system (demo data). Port of reader/simulator.py with extras
 // (PV strings, multi-day history). SigenStor EC 20.0 TP · 2× BAT 10.0 · EVDC 25 · Gateway Home TP 30K.
 export const LAT = 13.75, LON = 100.5;
-export const CFG = { pv_kwp: 10.44, panels: 18, panel_w: 580, inverter_kw: 20, batt_kwh: 20, batt_max_kw: 10, soc_min: 10, soc_max: 100, ev_kw: 5 };
+// Real string layout from mySigen (PV Panel page). vmp/imp = approx. module datasheet values (unverified).
+export const PV_STRINGS = [
+  { id: 'PV1', brand: 'AIKO', w: 670, n: 12, kwp: 8.04, vmp: 41.6, share: 0.384 },
+  { id: 'PV2', brand: 'Jinko', w: 580, n: 12, kwp: 6.96, vmp: 42.3, share: 0.348 },
+  { id: 'PV3', brand: 'Jinko', w: 580, n: 10, kwp: 5.80, vmp: 42.3, share: 0.268 },
+  { id: 'PV4', brand: null, w: 0, n: 0, kwp: 0, vmp: 0, share: 0 },
+];
+export const CFG = { pv_kwp: 20.8, panels: 34, inverter_kw: 20, batt_kwh: 20, batt_max_kw: 10, soc_min: 10, soc_max: 100, ev_kw: 5 };
 const TZ_MS = 7 * 3600e3;
 
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -28,7 +35,7 @@ export function sunTimes(p) { // minutes of sunrise / sunset
 }
 
 function cloud(p) { const r = rng(p.key * 7919); const base = 0.82 + 0.18 * r(); const w = []; for (let k = 0; k < 4; k++) w.push([0.02 + 0.06 * r(), 45 + 135 * r(), 6.28 * r()]); return { base, w, r2: r(), rain: r() < 0.18 }; }
-function pvKw(p, m, cp) { const e = sunPos(p, m).elev; if (e <= 0) return 0; let f = cp.base * (cp.rain ? 0.55 : 1); for (const [a, per, ph] of cp.w) f -= a * (0.5 + 0.5 * Math.sin(m / per * 6.283 + ph)); f = Math.max(0.25, Math.min(1, f)); return Math.min(CFG.inverter_kw, CFG.pv_kwp * 0.82 * Math.pow(Math.sin(e * Math.PI / 180), 1.15) * f); }
+function pvKw(p, m, cp) { const e = sunPos(p, m).elev; if (e <= 0) return 0; let f = cp.base * (cp.rain ? 0.55 : 1); for (const [a, per, ph] of cp.w) f -= a * (0.5 + 0.5 * Math.sin(m / per * 6.283 + ph)); f = Math.max(0.25, Math.min(1, f)); return Math.min(CFG.inverter_kw, CFG.pv_kwp * 1.12 * Math.pow(Math.sin(e * Math.PI / 180), 1.3) * f); }
 function loadKw(p, m, cp) { const h = m / 60, we = p.dow === 0 || p.dow === 6, g = (c, w) => Math.exp(-(((h - c) / w) ** 2));
   return Math.max(0.3, 0.55 + 1.2 * g(7, 0.8) + (we ? 1.6 : 0.9) * g(13, 2.5) + 2.8 * g(20.5, 1.6) + ((h >= 22 || h < 5) ? 1.1 : 0) + 0.14 * Math.sin(m / 9 + cp.r2 * 6) + 0.06 * Math.sin(m / 3.1)); }
 function evWin(p) { return (p.dow === 0 || p.dow === 6) ? [600, 720] : [690, 780]; }
@@ -68,11 +75,12 @@ export function snapshot(now = new Date()) {
   const pv = j(L.pv, 1), home = j(L.home, 2), batt = j(L.batt, 3), ev = L.ev, grid = home + ev + batt - pv;
   const days = p.key - Math.floor(Date.UTC(2025, 5, 1) / 864e5);
   const tempAmb = 27 + 6 * Math.max(0, Math.sin((p.min / 60 - 7) / 14 * Math.PI));
-  // 3 strings × 6 panels (PV1..PV3), PV4 unused
-  const strings = [0, 1, 2, 3].map(i => {
-    if (i === 3) return { kw: 0, v: 0, a: 0 };
-    const share = [0.345, 0.33, 0.325][i], kw = pv * share, v = kw > 0.02 ? 6 * (43.5 - 0.11 * (tempAmb + 18 * kw / 3.5 - 25)) : 0;
-    return { kw, v, a: v ? kw * 1000 / v : 0 };
+  // real strings: PV1 AIKO 670W×12, PV2 Jinko 580W×12, PV3 Jinko 580W×10, PV4 unused
+  const strings = PV_STRINGS.map(st => {
+    if (!st.n) return { ...st, kw: 0, v: 0, a: 0, unused: true };
+    const kw = pv * st.share, tcell = tempAmb + 25 * kw / st.kwp;
+    const v = kw > 0.02 ? st.n * st.vmp * (1 - 0.0029 * (tcell - 25)) : 0;
+    return { ...st, kw, v, a: v ? kw * 1000 / v : 0, unused: false };
   });
   return {
     ts: new Date(now.getTime() + TZ_MS).toISOString().slice(0, 19) + '+07:00', tz: 'Asia/Bangkok', source: 'simulate', demo: true,
