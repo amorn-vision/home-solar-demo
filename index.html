@@ -25,7 +25,7 @@ h1{font-size:22px;margin:0}.sub{color:var(--mut);font-size:13px;margin-top:2px}
 .node circle{fill:#0f1720;stroke-width:3}.node text{fill:var(--txt);text-anchor:middle}
 .lbl{font-size:13px;fill:var(--mut)}.val{font-size:17px;font-weight:700}
 .wire{fill:none;stroke:#2c3b4c;stroke-width:4;stroke-linecap:round}
-.flowline{fill:none;stroke-width:4;stroke-linecap:round;stroke-dasharray:2 14;animation:dash 1s linear infinite}
+.flowline{fill:none;stroke-width:5;stroke-linecap:round;stroke-dasharray:2 14;animation:dash 1s linear infinite}
 .flowline.rev{animation-direction:reverse}@keyframes dash{to{stroke-dashoffset:-16}}
 .gauge{display:flex;align-items:center;gap:16px}
 .gauge svg{width:150px;height:150px;flex:none}
@@ -122,7 +122,7 @@ const N = {pv:[200,48,'☀️','โซลาร์',C.pv], grid:[52,165,'🔌','
 (function drawNodes(){
   const svg = $('flow'), w = $('wires');
   for (const [k,[x,y,ic,name,col]] of Object.entries(N)) {
-    w.insertAdjacentHTML('beforeend', `<path class="wire" d="M200 165 L${x} ${y}"/><path id="fl_${k}" class="flowline" stroke="${col}" filter="url(#glow)" d="M${k==='pv'||k==='grid'?`${x} ${y} L200 165`:`200 165 L${x} ${y}`}" style="opacity:0"/>`);
+    w.insertAdjacentHTML('beforeend', `<path class="wire" d="M200 165 L${x} ${y}"/><path id="fl_${k}" class="flowline" stroke="${col}" d="M${k==='pv'||k==='grid'?`${x} ${y} L200 165`:`200 165 L${x} ${y}`}" style="opacity:0"/>`);
     svg.insertAdjacentHTML('beforeend', `<g class="node" transform="translate(${x},${y})"><circle r="34" stroke="${col}"/><text y="-6" style="font-size:20px">${ic}</text><text y="16" class="val" id="v_${k}" style="font-size:14px">–</text><text y="${y>200?52:-42}" class="lbl">${name}</text></g>`);
   }
 })();
