@@ -22,10 +22,18 @@ function setPalette(p = {}) {
     glass: std(P.glass, { roughness: 0.08, metalness: 0.15, transparent: true, opacity: 0.72 }),
     rail: std(P.metal, { roughness: 0.4, metalness: 0.4 }), metal: std(P.metal, { roughness: 0.4, metalness: 0.4 }),
     stone: std('#ffffff', { roughness: 1, map: stoneTexture(P.stone) }), wood: std(P.wood, { roughness: 0.8 }), stair: std(P.wood, { roughness: 0.7 }),
-    dark: std(P.dark, { roughness: 0.6 }), fascia: std(P.dark, { roughness: 0.6 }),
+    dark: std(P.dark, { roughness: 0.6 }), fascia: std(P.roofFascia || P.dark, { roughness: 0.6 }),
+    roofTop: std('#ffffff', { roughness: 0.6, map: seamTexture(P.roofTop || '#e3e5e6') }), metalRoof: std('#ffffff', { roughness: 0.6, map: seamTexture(P.metalRoof || '#8d9196', 0.06) }),
     roof: std(P.roofUnder), roofUnder: std(P.roofUnder), plinth: std(P.plinth, { roughness: 1 }),
     lawn: std('#6aa84f', { roughness: 1 }), road: std('#8a8d90', { roughness: 1 }), column: std('#e9eaeb'),
   });
+}
+function seamTexture(base, step = 0.5) {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const g = c.getContext('2d'); g.fillStyle = base; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = '#' + new THREE.Color(base).multiplyScalar(0.82).getHexString(); g.fillRect(0, 0, 4, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1 / step, 1); t.userData = { step }; return t;
 }
 function stoneTexture(base) {
   const c = document.createElement('canvas'); c.width = 128; c.height = 128;
@@ -249,6 +257,7 @@ export function buildHouse(data) {
       const [x0, y0, z0, x1, y1, z1] = F.box;
       const grp = F.group === 'roof' ? roofGroup : groupFor(floorOfY(y0));
       const m = bb(x0, y0, z0, x1, y1, z1, fmat(F.color)); if (F.note) m.name = F.note; grp.add(m);
+      if (F.color === 'metalRoof') MAT.metalRoof.map.repeat.set((x1 - x0) / MAT.metalRoof.map.userData.step, 1);
       if (F.edge) {
         grp.add(bb(x0 - 0.02, y1 - 0.14, z0 - 0.02, x1 + 0.02, y1 + 0.01, z0 + 0.05, fmat(F.edge)));
         grp.add(bb(x0 - 0.02, y1 - 0.14, z1 - 0.05, x1 + 0.02, y1 + 0.01, z1 + 0.02, fmat(F.edge)));
@@ -327,7 +336,8 @@ export function buildHouse(data) {
   const roofPivot = new THREE.Group(); roofPivot.name = 'main-roof';
   roofPivot.position.set((rx0 + rx1) / 2, (rf.lowY + rf.highY) / 2 + 0.1, (rz0 + rz1) / 2);
   roofPivot.rotation.x = rf.highSide === 'front' ? -ang : ang;
-  const slab = box(W, 0.12, D, MAT.roofUnder, 0, 0, 0); slab.name = 'roof-slab'; roofPivot.add(slab);
+  const slab = box(W, 0.12, D, [MAT.roofUnder, MAT.roofUnder, MAT.roofTop, MAT.roofUnder, MAT.roofUnder, MAT.roofUnder], 0, 0, 0);
+  { const t = MAT.roofTop.map; t.repeat.set(W / t.userData.step, 1); } slab.name = 'roof-slab'; roofPivot.add(slab);
   roofPivot.add(box(W + 0.06, 0.22, 0.06, MAT.fascia, 0, 0.02, D / 2));
   roofPivot.add(box(W + 0.06, 0.22, 0.06, MAT.fascia, 0, 0.02, -D / 2));
   roofPivot.add(box(0.06, 0.22, D, MAT.fascia, W / 2, 0.02, 0));
@@ -351,24 +361,35 @@ export function buildHouse(data) {
   }
   roofGroup.add(Object.assign(bb(0.86, 9.18, 3.0, 3.0, 9.30, 6.46, MAT.louver), { name: 'bumpout-cap' }));
 
-  // ---------- solar panels ----------
+  // ---------- solar panels (strings → side-by-side blocks on the main roof plane) ----------
   const sol = data.solar;
   const solar = new THREE.Group(); solar.name = 'solar-array';
-  solar.userData = { pick: 'solar', floor: 4 };
-  const pm = new THREE.MeshStandardMaterial({ map: solarTexture(), roughness: 0.25, metalness: 0.4 });
-  const gw = sol.cols * sol.panel.w + (sol.cols - 1) * sol.panelGap;
-  const total = sol.groups * gw + (sol.groups - 1) * sol.groupGap;
-  const gd = sol.rows * sol.panel.h + (sol.rows - 1) * sol.panelGap;
-  let idx = 0;
-  for (let gI = 0; gI < sol.groups; gI++) for (let c = 0; c < sol.cols; c++) for (let r = 0; r < sol.rows; r++) {
-    const x = sol.centerX - total / 2 + gI * (gw + sol.groupGap) + c * (sol.panel.w + sol.panelGap) + sol.panel.w / 2 - (rx0 + rx1) / 2;
-    const z = -gd / 2 + r * (sol.panel.h + sol.panelGap) + sol.panel.h / 2;
-    const p = new THREE.Mesh(new THREE.BoxGeometry(sol.panel.w, 0.04, sol.panel.h), pm);
-    p.position.set(x, 0.12, z);
-    p.castShadow = true; p.name = 'panel-' + (++idx);
-    p.userData = { pick: 'solar', floor: 4, panelIndex: idx, group: gI + 1 };
-    solar.add(p); pickables.push(p);
-  }
+  solar.userData = { pick: 'solar', floor: 4, strings: [] };
+  const tex = solarTexture();
+  const pw = sol.panel.w, ph = sol.panel.h, pg = sol.panelGap ?? 0.02;
+  const strings = sol.strings ?? Array.from({ length: sol.groups }, (_, i) => ({ id: 'G' + (i + 1), label: 'กลุ่ม ' + (i + 1), count: sol.cols * sol.rows, cols: sol.cols, rows: sol.rows, offset: 0 }));
+  const bgap = sol.blockGap ?? sol.groupGap ?? 0.3;
+  const widths = strings.map(st => st.cols * pw + (st.cols - 1) * pg);
+  const total = widths.reduce((a, b) => a + b, 0) + bgap * (strings.length - 1);
+  let idx = 0, xCur = sol.centerX - total / 2 - (rx0 + rx1) / 2;
+  strings.forEach((st, gI) => {
+    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.25, metalness: 0.4 });
+    const grp = new THREE.Group(); grp.name = 'string-' + st.id;
+    grp.userData = { pick: 'solar', floor: 4, string: st.id, label: st.label };
+    const gd = st.rows * ph + (st.rows - 1) * pg;
+    let n = 0;
+    // fill from the high (front) row backwards; the last row may be partial
+    for (let r = st.rows - 1; r >= 0 && n < st.count; r--) for (let c = 0; c < st.cols && n < st.count; c++) {
+      const x = xCur + c * (pw + pg) + pw / 2;
+      const z = (st.offset || 0) - gd / 2 + r * (ph + pg) + ph / 2;
+      const p = new THREE.Mesh(new THREE.BoxGeometry(pw, 0.04, ph), mat);
+      p.position.set(x, 0.12, z); p.castShadow = true; p.name = 'panel-' + (++idx); n++;
+      p.userData = { pick: 'solar', floor: 4, panelIndex: idx, group: gI + 1, string: st.id, stringLabel: st.label };
+      grp.add(p); pickables.push(p);
+    }
+    solar.add(grp); solar.userData.strings.push({ id: st.id, label: st.label, count: n });
+    xCur += widths[gI] + bgap;
+  });
   roofPivot.add(solar);
   roofGroup.userData.solar = solar;
 
