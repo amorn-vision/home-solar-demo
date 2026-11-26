@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "title": "บ้าน 3 ชั้น — โมเดลร่างแรก",
+    "version": "0.1.0",
+    "source": "แบบร่างสถาปัตย์ปี 2558 (บ้านจริงมีการเปลี่ยนแปลงบางส่วน) + ภาพโดรนด้านหน้า",
+    "units": "meters",
+    "coords": "x = ซ้าย→ขวา (มองจากถนน) จากขอบที่ดินซ้าย, z = หลัง→หน้า จากขอบที่ดินด้านหลัง (ถนนอยู่ด้าน z มาก), y = ความสูงจากระดับถนน ±0.00",
+    "lot": { "width": 20.30, "depth": 10.00 }
+  },
+  "levels": [
+    { "id": 1, "name": "ชั้น 1", "elevation": 0.45, "top": 3.60 },
+    { "id": 2, "name": "ชั้น 2", "elevation": 3.60, "top": 6.40 },
+    { "id": 3, "name": "ชั้น 3", "elevation": 6.40, "top": 9.20 }
+  ],
+  "roof": { "type": "mono-pitch", "lowY": 9.25, "highY": 9.90, "highSide": "front", "rect": [0.60, 1.50, 14.80, 9.40], "assumed": true },
+  "stair": { "rect": [8.25, 2.10, 10.60, 5.10], "type": "U" },
+  "rooms": [
+    { "id": "f1-wc", "floor": 1, "name": "น้ำ-ส้วม", "area": 7.01, "kind": "wet", "rect": [1.00, 3.10, 3.10, 6.30], "elev": 0.35 },
+    { "id": "f1-prep", "floor": 1, "name": "เตรียมอาหาร", "area": 10.67, "kind": "room", "rect": [3.10, 2.00, 6.85, 4.85] },
+    { "id": "f1-multi", "floor": 1, "name": "เอนกประสงค์", "area": 16.98, "kind": "room", "rect": [3.10, 4.85, 6.85, 8.90] },
+    { "id": "f1-stair", "floor": 1, "name": "โถงบันได", "area": 15.75, "kind": "hall", "rect": [6.85, 2.00, 10.60, 6.10] },
+    { "id": "f1-dining", "floor": 1, "name": "ทานอาหาร", "area": 10.50, "kind": "room", "rect": [6.85, 6.10, 10.60, 8.90] },
+    { "id": "f1-living", "floor": 1, "name": "รับแขก", "area": 19.87, "kind": "room", "rect": [10.60, 2.00, 14.35, 7.20] },
+    { "id": "f1-porch", "floor": 1, "name": "เฉลียง", "area": 6.33, "kind": "porch", "rect": [10.60, 7.20, 14.35, 8.90], "elev": 0.35 },
+    { "id": "f1-carport", "floor": 1, "name": "ที่จอดรถ", "area": 39.41, "kind": "carport", "rect": [14.35, 2.80, 20.30, 9.90], "elev": 0.20 },
+    { "id": "f1-laundry", "floor": 1, "name": "ซักล้าง", "area": 15.40, "kind": "yard", "rect": [3.10, 0.00, 10.80, 2.00], "elev": 0.35 },
+
+    { "id": "f2-wc", "floor": 2, "name": "น้ำ-ส้วม", "area": 7.01, "kind": "wet", "rect": [1.00, 3.10, 3.10, 6.30] },
+    { "id": "f2-bed1", "floor": 2, "name": "แต่งตัว + ห้องนอน 1", "area": 24.51, "kind": "room", "rect": [3.10, 2.00, 6.85, 8.90] },
+    { "id": "f2-bal-back", "floor": 2, "name": "ระเบียง", "area": 1.57, "kind": "balcony", "rect": [3.60, 1.40, 6.20, 2.00] },
+    { "id": "f2-lounge", "floor": 2, "name": "โถงพักผ่อน", "area": 21.74, "kind": "hall", "rect": [6.85, 2.00, 10.60, 8.90] },
+    { "id": "f2-bal-front", "floor": 2, "name": "ระเบียง", "area": 3.20, "kind": "balcony", "rect": [6.85, 8.90, 10.60, 9.75] },
+    { "id": "f2-bed2", "floor": 2, "name": "ห้องนอน 2", "area": 25.21, "kind": "room", "rect": [10.60, 2.00, 14.35, 8.90] },
+    { "id": "f2-wc2", "floor": 2, "name": "น้ำ-ส้วม (ห้องนอน 2)", "area": 5.88, "kind": "wet", "rect": [14.35, 2.00, 17.35, 3.96] },
+    { "id": "f2-dress2", "floor": 2, "name": "แต่งตัว (ห้องนอน 2)", "area": null, "kind": "room", "rect": [14.35, 3.96, 17.35, 8.10] },
+    { "id": "f2-bal-right", "floor": 2, "name": "ระเบียง", "area": 2.32, "kind": "balcony", "rect": [14.35, 8.10, 17.35, 8.90] },
+
+    { "id": "f3-wc", "floor": 3, "name": "น้ำ-ส้วม", "area": 7.01, "kind": "wet", "rect": [1.00, 3.10, 3.10, 6.30] },
+    { "id": "f3-master", "floor": 3, "name": "ห้องนอนใหญ่ (มีโซนแต่งตัว)", "area": 49.91, "kind": "room", "rect": [3.10, 2.00, 8.25, 8.90] },
+    { "id": "f3-stair", "floor": 3, "name": "โถงบันได + ห้องพระ", "area": 14.80, "kind": "hall", "rect": [8.25, 2.00, 10.60, 8.90] },
+    { "id": "f3-lounge", "floor": 3, "name": "พักผ่อน", "area": null, "kind": "room", "rect": [10.60, 2.00, 14.35, 8.90] },
+    { "id": "f3-work", "floor": 3, "name": "ทำงาน", "area": null, "kind": "room", "rect": [14.35, 2.00, 17.35, 5.20] },
+    { "id": "f3-terrace", "floor": 3, "name": "ระเบียง", "area": 11.14, "kind": "balcony", "rect": [14.35, 5.20, 17.35, 8.90] }
+  ],
+  "solar": {
+    "count": 18,
+    "layout": "3 กลุ่ม × (3 คอลัมน์ × 2 แถว) วางแนวตั้ง — ประมาณจากภาพโดรน",
+    "panel": { "w": 1.134, "h": 2.278 },
+    "groups": 3, "cols": 3, "rows": 2, "groupGap": 0.35, "panelGap": 0.02,
+    "centerX": 8.725
+  },
+  "hotspots": [
+    { "id": "hs-inverter", "type": "inverter", "label": "อินเวอร์เตอร์ Sigenergy", "floor": 1, "pos": [14.48, 1.6, 4.2], "placeholder": true },
+    { "id": "hs-battery", "type": "battery", "label": "แบตเตอรี่ (2 ก้อน)", "floor": 1, "pos": [14.48, 0.8, 4.2], "placeholder": true },
+    { "id": "hs-gateway", "type": "gateway", "label": "Sigen Gateway", "floor": 1, "pos": [14.48, 1.6, 5.4], "placeholder": true },
+    { "id": "hs-ev", "type": "ev_charger", "label": "ที่ชาร์จรถ EV", "floor": 1, "pos": [14.48, 1.3, 6.8], "placeholder": true },
+    { "id": "hs-router", "type": "router", "label": "เราเตอร์ / อินเทอร์เน็ต", "floor": 1, "pos": [12.5, 1.2, 2.3], "placeholder": true },
+    { "id": "hs-ap2", "type": "wifi_ap", "label": "จุดกระจาย Wi-Fi ชั้น 2", "floor": 2, "pos": [8.0, 6.1, 6.0], "placeholder": true },
+    { "id": "hs-cam-front", "type": "camera", "label": "กล้อง CCTV หน้าบ้าน", "floor": 1, "pos": [20.1, 3.1, 9.8], "placeholder": true },
+    { "id": "hs-cam-back", "type": "camera", "label": "กล้อง CCTV หลังบ้าน", "floor": 1, "pos": [3.3, 2.9, 0.15], "placeholder": true },
+    { "id": "hs-smarthome", "type": "smarthome_gateway", "label": "Gateway สมาร์ทโฮม", "floor": 1, "pos": [9.0, 1.2, 6.3], "placeholder": true }
+  ]
+}

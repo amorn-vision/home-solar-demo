@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☀️</text></svg>">
+<title>พลังงานบ้าน · โซลาร์ (ข้อมูลตัวอย่าง)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f1720;--card:#17212c;--line:#253241;--txt:#e8eef5;--mut:#8ea0b3;--pv:#f5b301;--home:#4fc3f7;--bat:#3ddc84;--grid:#b39ddb;--ev:#ff7a59;--warn:#ffb020}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--txt);font-family:"IBM Plex Sans Thai",system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:12px 14px 40px}
+.demo{background:repeating-linear-gradient(45deg,#5a3d00,#5a3d00 10px,#6b4a00 10px,#6b4a00 20px);color:#ffe08a;border:1px solid #a87800;border-radius:12px;padding:8px 12px;font-weight:600;display:flex;gap:8px;align-items:center;font-size:14px}
+.demo b{white-space:nowrap;background:#ffb020;color:#2a1c00;padding:2px 8px;border-radius:999px;font-size:13px}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin:14px 2px 10px;gap:10px;flex-wrap:wrap}
+h1{font-size:22px;margin:0}.sub{color:var(--mut);font-size:13px;margin-top:2px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);padding:5px 10px;border-radius:999px;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--bat);box-shadow:0 0 8px var(--bat)}
+.grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:12px}@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.card h2{font-size:15px;margin:0 0 8px;color:var(--mut);font-weight:500}
+#flow{width:100%;height:auto;display:block}
+.node circle{fill:#0f1720;stroke-width:3}.node text{fill:var(--txt);text-anchor:middle}
+.lbl{font-size:13px;fill:var(--mut)}.val{font-size:17px;font-weight:700}
+.wire{fill:none;stroke:#2c3b4c;stroke-width:4;stroke-linecap:round}
+.flowline{fill:none;stroke-width:5;stroke-linecap:round;stroke-dasharray:2 14;animation:dash 1s linear infinite}
+.flowline.rev{animation-direction:reverse}@keyframes dash{to{stroke-dashoffset:-16}}
+.gauge{display:flex;align-items:center;gap:16px}
+.gauge svg{width:150px;height:150px;flex:none}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}.kv span:nth-child(odd){color:var(--mut)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}@media(max-width:560px){.tiles{grid-template-columns:repeat(2,1fr)}}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.tile .t{font-size:13px;color:var(--mut)}.tile .n{font-size:24px;font-weight:700;margin-top:2px}.tile .u{font-size:13px;color:var(--mut);font-weight:400;margin-left:3px}
+.tile .bar{height:4px;border-radius:2px;margin-top:8px}
+#chart{width:100%;height:220px;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin-top:6px}.legend i{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.dev{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;font-size:14px}@media(max-width:560px){.dev{grid-template-columns:1fr}}
+.dev div{background:#121b25;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.dev small{color:var(--mut);display:block}
+.ok{color:var(--bat)}.foot{color:var(--mut);font-size:12px;margin-top:16px;line-height:1.6}
+.mt{margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="demo" id="demoBanner"><b>ข้อมูลตัวอย่าง</b><span>ตัวเลขทั้งหมดจำลองขึ้น ยังไม่ได้ต่อกับเครื่องจริง</span></div>
+  <header>
+    <div><h1>☀️ พลังงานบ้าน · โซลาร์</h1><div class="sub">SigenStor EC 20.0 TP · แบต 20 kWh · EV DC 25</div></div>
+    <div class="pill"><span class="dot" id="stDot"></span><span id="stTxt">ทำงานปกติ</span> · <span id="clock">--:--</span> น.</div>
+  </header>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>การไหลของพลังงานตอนนี้</h2>
+      <svg id="flow" viewBox="0 -14 400 364" aria-label="แผนภาพการไหลของพลังงาน">
+        <defs><filter id="glow" filterUnits="userSpaceOnUse" x="0" y="-14" width="400" height="364"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <g id="wires"></g>
+        <g class="node" transform="translate(200,165)"><rect x="-34" y="-26" width="68" height="52" rx="12" fill="#0f1720" stroke="#5d7185" stroke-width="2"/><text y="-2" class="lbl" style="font-size:11px">อินเวอร์เตอร์</text><text y="14" style="font-size:11px;fill:#8ea0b3">20 kW</text></g>
+      </svg>
+    </div>
+    <div class="card">
+      <h2>แบตเตอรี่</h2>
+      <div class="gauge">
+        <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="none" stroke="#253241" stroke-width="12"/>
+          <circle id="socArc" cx="60" cy="60" r="50" fill="none" stroke="var(--bat)" stroke-width="12" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="314" stroke-dashoffset="314" style="transition:stroke-dashoffset .8s"/>
+          <text x="60" y="62" text-anchor="middle" fill="#e8eef5" style="font-size:26px;font-weight:700" id="socTxt">--%</text>
+          <text x="60" y="82" text-anchor="middle" fill="#8ea0b3" style="font-size:11px" id="socKwh">-- kWh</text></svg>
+        <div class="kv">
+          <span>สถานะ</span><b id="bState">-</b>
+          <span>กำลัง</span><b id="bPow">-</b>
+          <span>สุขภาพ (SOH)</span><b id="bSoh">-</b>
+          <span>อุณหภูมิเซลล์</span><b id="bTemp">-</b>
+          <span>ความจุ</span><b>2 × 10 kWh</b>
+        </div>
+      </div>
+      <h2 class="mt">รถยนต์ไฟฟ้า (EV DC)</h2>
+      <div class="kv"><span>สถานะ</span><b id="evState">-</b><span>กำลังชาร์จ</span><b id="evPow">-</b><span>แบตรถ</span><b id="evSoc">-</b><span>รอบนี้</span><b id="evSess">-</b></div>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="t">☀️ ผลิตวันนี้</div><div class="n"><span id="tPv">-</span><span class="u">kWh</span></div><div class="bar" style="background:var(--pv)"></div></div>
+    <div class="tile"><div class="t">🏠 ใช้ในบ้าน</div><div class="n"><span id="tHome">-</span><span class="u">kWh</span></div><div class="bar" style="background:var(--home)"></div></div>
+    <div class="tile"><div class="t">🔌 ซื้อไฟ (กฟน./กฟภ.)</div><div class="n"><span id="tImp">-</span><span class="u">kWh</span></div><div class="bar" style="background:var(--grid)"></div></div>
+    <div class="tile"><div class="t">↗️ ขายไฟเข้ากริด</div><div class="n"><span id="tExp">-</span><span class="u">kWh</span></div><div class="bar" style="background:var(--grid);opacity:.6"></div></div>
+    <div class="tile"><div class="t">🚗 ชาร์จรถ</div><div class="n"><span id="tEv">-</span><span class="u">kWh</span></div><div class="bar" style="background:var(--ev)"></div></div>
+    <div class="tile"><div class="t">🌿 พึ่งพาตัวเอง</div><div class="n"><span id="tSelf">-</span><span class="u">%</span></div><div class="bar" style="background:var(--bat)"></div></div>
+  </div>
+
+  <div class="card mt">
+    <h2>กราฟวันนี้ (kW) · <span id="yest" style="font-size:13px"></span></h2>
+    <svg id="chart" viewBox="0 0 600 220" preserveAspectRatio="none"></svg>
+    <div class="legend"><span><i style="background:var(--pv)"></i>โซลาร์</span><span><i style="background:var(--home)"></i>บ้าน</span><span><i style="background:var(--ev)"></i>EV</span><span><i style="background:var(--bat)"></i>แบต % (แกนขวา)</span><span><i style="background:var(--grid)"></i>กริด</span></div>
+  </div>
+
+  <div class="card mt">
+    <h2>อุปกรณ์ในระบบ</h2>
+    <div class="dev">
+      <div>SigenStor EC 20.0 TP<small>อินเวอร์เตอร์ไฮบริด 3 เฟส 20 kW · <span class="ok" id="dInv">ปกติ</span></small></div>
+      <div>SigenStor BAT 10.0 × 2<small>แบตเตอรี่รวม 20 kWh · <span class="ok">ปกติ</span></small></div>
+      <div>SigenStor EVDC 25<small>ที่ชาร์จรถ DC · <span class="ok" id="dEv">ปกติ</span></small></div>
+      <div>Sigen Gateway Home TP 30K<small>เกตเวย์/มิเตอร์กริด · <span class="ok" id="dGw">เชื่อมต่อ</span></small></div>
+    </div>
+    <div class="sub mt" id="alarms">✅ ไม่มีการแจ้งเตือน</div>
+  </div>
+
+  <div class="foot">แหล่งข้อมูล: <span id="srcTxt">ตัวจำลอง (ข้อมูลตัวอย่าง)</span> · อัปเดตทุก 5 วินาที · เวลาไทย (UTC+7)<br>
+  เมื่อต่อเครื่องจริง ข้อมูลจะมาจาก Sigenergy Modbus TCP (อ่านอย่างเดียว) ผ่านกล่องฮับในบ้าน</div>
+</div>
+<script src="sim.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const C = {pv:'#f5b301',home:'#4fc3f7',bat:'#3ddc84',grid:'#b39ddb',ev:'#ff7a59'};
+const params = new URLSearchParams(location.search);
+const API = params.get('api') || (location.hostname.endsWith('github.io') || location.protocol === 'file:' ? null : '');
+let mode = API === null ? 'sim' : 'api';
+const fmt = (x, d=1) => x == null ? '–' : (Math.abs(x) < 0.05 ? 0 : x).toLocaleString('th-TH', {minimumFractionDigits:d, maximumFractionDigits:d});
+
+// power-flow layout
+const N = {pv:[200,48,'☀️','โซลาร์',C.pv], grid:[52,165,'🔌','กริด',C.grid], home:[348,165,'🏠','บ้าน',C.home], bat:[110,282,'🔋','แบตเตอรี่',C.bat], ev:[290,282,'🚗','รถ EV',C.ev]};
+(function drawNodes(){
+  const svg = $('flow'), w = $('wires');
+  for (const [k,[x,y,ic,name,col]] of Object.entries(N)) {
+    w.insertAdjacentHTML('beforeend', `<path class="wire" d="M200 165 L${x} ${y}"/><path id="fl_${k}" class="flowline" stroke="${col}" d="M${k==='pv'||k==='grid'?`${x} ${y} L200 165`:`200 165 L${x} ${y}`}" style="opacity:0"/>`);
+    svg.insertAdjacentHTML('beforeend', `<g class="node" transform="translate(${x},${y})"><circle r="34" stroke="${col}"/><text y="-6" style="font-size:20px">${ic}</text><text y="16" class="val" id="v_${k}" style="font-size:14px">–</text><text y="${y>200?52:-42}" class="lbl">${name}</text></g>`);
+  }
+})();
+function setFlow(k, kw, forward){ // forward = along the drawn path direction
+  const el = $('fl_'+k), a = Math.abs(kw||0);
+  el.style.opacity = a > 0.05 ? 1 : 0; el.classList.toggle('rev', !forward);
+  el.style.animationDuration = (a > 0 ? Math.max(0.35, 1.6 - a/6) : 1) + 's';
+}
+function render(s, hist){
+  const p = s.power_kw, b = s.battery, t = s.today_kwh;
+  $('demoBanner').style.display = s.demo ? 'flex' : 'none';
+  $('srcTxt').textContent = s.demo ? 'ตัวจำลอง (ข้อมูลตัวอย่าง)' : 'Sigenergy Modbus TCP (ข้อมูลจริง)';
+  $('clock').textContent = s.ts.slice(11,16);
+  $('stTxt').textContent = s.plant.running_state_th || '-';
+  $('v_pv').textContent = fmt(p.pv)+' kW'; $('v_home').textContent = fmt(p.home)+' kW';
+  $('v_bat').textContent = fmt(Math.abs(p.battery))+' kW'; $('v_grid').textContent = fmt(Math.abs(p.grid))+' kW'; $('v_ev').textContent = fmt(p.ev)+' kW';
+  setFlow('pv', p.pv, true); setFlow('home', p.home, true); setFlow('ev', p.ev, true);
+  setFlow('bat', p.battery, p.battery > 0);   // charging: inverter -> battery
+  setFlow('grid', p.grid, p.grid > 0);        // import: grid -> inverter
+  const soc = b.soc_pct || 0; $('socArc').style.strokeDashoffset = 314 * (1 - soc/100);
+  $('socArc').style.stroke = soc < 20 ? '#ff6b6b' : C.bat;
+  $('socTxt').textContent = fmt(soc,0)+'%'; $('socKwh').textContent = fmt(soc/100*(b.capacity_kwh||20))+' / '+(b.capacity_kwh||20)+' kWh';
+  $('bState').textContent = {charging:'กำลังชาร์จ ⬆',discharging:'กำลังจ่ายไฟ ⬇',idle:'พัก'}[b.state] || '-';
+  $('bPow').textContent = fmt(Math.abs(p.battery),2)+' kW'; $('bSoh').textContent = fmt(b.soh_pct)+'%'; $('bTemp').textContent = fmt(b.temp_c)+' °C';
+  $('evState').textContent = s.ev.state_th; $('evPow').textContent = fmt(s.ev.power_kw,2)+' kW';
+  $('evSoc').textContent = s.ev.vehicle_soc_pct == null ? '–' : fmt(s.ev.vehicle_soc_pct,0)+'%';
+  $('evSess').textContent = s.ev.session_min ? `${fmt(s.ev.session_kwh)} kWh · ${s.ev.session_min} นาที` : '–';
+  $('tPv').textContent = fmt(t.pv); $('tHome').textContent = fmt(t.home); $('tImp').textContent = fmt(t.grid_import);
+  $('tExp').textContent = fmt(t.grid_export); $('tEv').textContent = fmt(t.ev); $('tSelf').textContent = s.self_sufficiency_pct ?? '–';
+  $('yest').textContent = t.pv_yesterday != null ? `เมื่อวานผลิต ${fmt(t.pv_yesterday)} kWh` : '';
+  $('dGw').textContent = s.plant.grid_sensor_connected ? 'เชื่อมต่อ' : 'ไม่เชื่อมต่อ';
+  $('alarms').innerHTML = s.alarms.length ? '⚠️ ' + s.alarms.map(a=>a.text).join(', ') : '✅ ไม่มีการแจ้งเตือน';
+  if (hist) drawChart(hist);
+}
+function drawChart(h){
+  const W=600,H=220,L=30,R=30,T=10,B=24, svg=$('chart');
+  const toM = s => +s.slice(0,2)*60 + +s.slice(3,5);
+  const x = m => L + (W-L-R)*m/1440;
+  const maxKw = Math.max(6, ...h.map(d=>Math.max(d.pv,d.home,d.ev,Math.abs(d.grid))))*1.1;
+  const y = v => T + (H-T-B)*(1 - v/maxKw), ys = v => T + (H-T-B)*(1 - v/100);
+  const path = (k,f=y) => h.map((d,i)=>(i?'L':'M')+x(toM(d.t)).toFixed(1)+' '+f(Math.max(0,d[k])).toFixed(1)).join(' ');
+  let g = '';
+  for (let hr=0; hr<=24; hr+=3) g += `<line x1="${x(hr*60)}" x2="${x(hr*60)}" y1="${T}" y2="${H-B}" stroke="#223040"/><text x="${x(hr*60)}" y="${H-6}" fill="#8ea0b3" font-size="11" text-anchor="middle">${String(hr).padStart(2,'0')}</text>`;
+  for (let v=0; v<=maxKw; v+= maxKw>12?4:2) g += `<text x="${L-6}" y="${y(v)+4}" fill="#8ea0b3" font-size="10" text-anchor="end">${v}</text>`;
+  g += `<text x="${W-R+4}" y="${ys(100)+4}" fill="#3ddc84" font-size="10">100%</text><text x="${W-R+4}" y="${ys(0)}" fill="#3ddc84" font-size="10">0%</text>`;
+  if (h.length) {
+    const area = path('pv') + ` L${x(toM(h[h.length-1].t))} ${y(0)} L${x(0)} ${y(0)} Z`;
+    g += `<path d="${area}" fill="${C.pv}" opacity=".18"/>`;
+    g += `<path d="${path('grid', v=>y(v))}" fill="none" stroke="${C.grid}" stroke-width="1.5" opacity=".9"/>`;
+    g += `<path d="${path('pv')}" fill="none" stroke="${C.pv}" stroke-width="2.2"/><path d="${path('home')}" fill="none" stroke="${C.home}" stroke-width="2"/>`;
+    g += `<path d="${path('ev')}" fill="none" stroke="${C.ev}" stroke-width="2"/><path d="${path('soc',ys)}" fill="none" stroke="${C.bat}" stroke-width="2" stroke-dasharray="5 4"/>`;
+    const last = h[h.length-1]; g += `<line x1="${x(toM(last.t))}" x2="${x(toM(last.t))}" y1="${T}" y2="${H-B}" stroke="#e8eef5" stroke-dasharray="2 3" opacity=".5"/>`;
+  }
+  svg.innerHTML = g;
+}
+let tick = 0;
+async function refresh(){
+  try {
+    if (mode === 'api') {
+      const base = API || '';
+      const s = await (await fetch(base + '/api/snapshot', {cache:'no-store'})).json();
+      const h = (tick++ % 12 === 0) ? (await (await fetch(base + '/api/history', {cache:'no-store'})).json()).points : null;
+      render(s, h); return;
+    }
+  } catch (e) { console.warn('API unavailable, using simulator', e); mode = 'sim'; }
+  const r = SigenSim.snapshot(); render(r.snap, r.history);
+}
+refresh(); setInterval(refresh, 5000);
+</script>
+</body>
+</html>

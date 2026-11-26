@@ -1,0 +1,148 @@
+// Home-tab hero: 3D house + Bangkok sun arc + floating power labels.
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/CSS2DRenderer.js';
+import { buildHouse } from './model.js';
+import { sunPos, sunTimes, bkk } from './sim.js';
+
+// Assumption: house front (road, +z) faces SOUTH → +x = east, -z = north. Change FRONT_AZ if the real orientation differs.
+const FRONT_AZ = 180;
+
+export async function createScene(el) {
+  const data = await (await fetch('./data/house.json')).json();
+  const C = new THREE.Vector3(data.meta.lot.width / 2, 5.5, data.meta.lot.depth / 2);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  el.appendChild(renderer.domElement);
+  const labels = new CSS2DRenderer();
+  Object.assign(labels.domElement.style, { position: 'absolute', inset: '0', pointerEvents: 'none' });
+  el.appendChild(labels.domElement);
+
+  const scene = new THREE.Scene();
+  // soft sky gradient + mist
+  const sky = document.createElement('canvas'); sky.width = 4; sky.height = 256;
+  const g = sky.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#b9d3df'); gr.addColorStop(0.55, '#dfe9e6'); gr.addColorStop(1, '#cfdcd2');
+  g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
+  const skyTex = new THREE.CanvasTexture(sky); skyTex.colorSpace = THREE.SRGBColorSpace;
+  scene.background = skyTex;
+  scene.fog = new THREE.Fog(0xd6e3dd, 55, 150);
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x3e5a44, 1.3); scene.add(hemi);
+  const sunLight = new THREE.DirectionalLight(0xfff1dc, 2.3);
+  sunLight.castShadow = true; sunLight.shadow.mapSize.set(1024, 1024);
+  Object.assign(sunLight.shadow.camera, { left: -18, right: 18, top: 18, bottom: -18, near: 1, far: 90 });
+  sunLight.target.position.set(C.x, 0, C.z); scene.add(sunLight, sunLight.target);
+
+  // ground + hills
+  const ground = new THREE.Mesh(new THREE.CircleGeometry(160, 64), new THREE.MeshStandardMaterial({ color: 0x2c4a35, roughness: 1 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.set(C.x, -0.08, C.z); ground.receiveShadow = true; scene.add(ground);
+  const hillMat = new THREE.MeshStandardMaterial({ color: 0x4f6f57, roughness: 1, flatShading: true });
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2 + (i % 3) * 0.2, d = 75 + (i * 37 % 40);
+    const h = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), hillMat);
+    h.scale.set(18 + (i * 13 % 14), 7 + (i * 7 % 9), 14 + (i * 11 % 10));
+    h.position.set(C.x + Math.cos(a) * d, -2, C.z + Math.sin(a) * d); scene.add(h);
+  }
+  // low hedge/trees for a softer site
+  const treeMat = new THREE.MeshStandardMaterial({ color: 0x3d6b48, roughness: 1, flatShading: true });
+  for (const [x, z, s] of [[-3, 2, 1.6], [-2.5, 8, 1.3], [23.5, 1, 1.8], [22.5, -2, 1.3], [5, -3, 1.5], [14, -3.5, 1.7]]) {
+    const t = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), treeMat); t.position.set(x, s * 1.1, z); t.castShadow = true; scene.add(t);
+  }
+
+  const house = buildHouse(data); scene.add(house.root);
+
+  // sun arc
+  const arcGroup = new THREE.Group(); scene.add(arcGroup);
+  const R = 19, ORIGIN = new THREE.Vector3(C.x, 0, C.z);
+  const dirOf = (az, el) => { const a = (az - FRONT_AZ + 180) * Math.PI / 180, e = el * Math.PI / 180;
+    // world: north = -z when FRONT_AZ=180
+    return new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e)); };
+  const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(1.1, 24, 16), new THREE.MeshBasicMaterial({ color: 0xffb300 }));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const r = x.createRadialGradient(32, 32, 4, 32, 32, 32); r.addColorStop(0, 'rgba(255,200,80,.9)'); r.addColorStop(1, 'rgba(255,170,40,0)'); x.fillStyle = r; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })(), depthWrite: false, fog: false }));
+  glow.scale.set(7, 7, 1); sunMesh.add(glow); scene.add(sunMesh);
+  let arcDay = null;
+  function updateSun(now) {
+    const p = bkk(now);
+    if (arcDay !== p.key) {
+      arcDay = p.key; arcGroup.clear();
+      const { rise, set } = sunTimes(p), pts = [];
+      for (let m = rise - 6; m <= set + 6; m += 4) { const s = sunPos(p, m); pts.push(ORIGIN.clone().addScaledVector(dirOf(s.az, Math.max(s.elev, -1)), R)); }
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 160, 0.09, 6, false), new THREE.MeshBasicMaterial({ color: 0xff8a3d, transparent: true, opacity: 0.85, fog: false }));
+      arcGroup.add(tube);
+      for (const m of [rise, set]) { const s = sunPos(p, m); const d = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff8a3d })); d.position.copy(ORIGIN).addScaledVector(dirOf(s.az, 0), R); arcGroup.add(d); }
+    }
+    const s = sunPos(p, p.min), day = s.elev > 0;
+    sunMesh.visible = day;
+    sunMesh.position.copy(ORIGIN).addScaledVector(dirOf(s.az, s.elev), R);
+    sunLight.position.copy(day ? sunMesh.position : ORIGIN.clone().add(new THREE.Vector3(-10, 30, 12)));
+    sunLight.intensity = day ? 0.8 + 1.8 * Math.min(1, s.elev / 40) : 0.35;
+    sunLight.color.setHex(day && s.elev < 15 ? 0xffd2a0 : day ? 0xfff1dc : 0x9fb4ff);
+    hemi.intensity = day ? 1.3 : 0.75;
+    return s;
+  }
+
+  // floating labels: [key, text, color, labelPos, anchorPos]
+  const L = [
+    ['pv', 'SOLAR', '#f5b301', [8.7, 13.2, 5.4], [8.7, 10.2, 5.4]],
+    ['home', 'HOME', '#3b8fe0', [2.6, 6.2, 10.2], [5.0, 5.0, 8.9]],
+    ['grid', 'GRID', '#8a96a3', [20.2, 3.6, 12.2], [19.8, 1.2, 10.0]],
+    ['battery', 'BATTERY', '#2fbf71', [17.6, 2.0, 0.4], [14.48, 0.8, 4.2]],
+    ['ev', 'EV', '#ff7a45', [13.2, 0.6, 14.0], [16.6, 0.9, 7.0]],
+  ];
+  const lblEls = {}, leaderMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 });
+  for (const [k, name, col, pos, anchor] of L) {
+    const d = document.createElement('div'); d.className = 'scene-lbl';
+    d.innerHTML = `<i style="background:${col}"></i><span class="n">${name}</span><b>–</b>`;
+    const o = new CSS2DObject(d); o.position.fromArray(pos); scene.add(o); lblEls[k] = d;
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...anchor), new THREE.Vector3(...pos)]), leaderMat));
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), new THREE.MeshBasicMaterial({ color: col })); dot.position.fromArray(anchor); scene.add(dot);
+  }
+
+  // camera / controls
+  const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 500);
+  const controls = new OrbitControls(cam, renderer.domElement);
+  controls.enableDamping = true; controls.target.copy(C); controls.maxPolarAngle = Math.PI * 0.47; controls.minDistance = 12; controls.maxDistance = 80;
+  controls.autoRotate = true; controls.autoRotateSpeed = 0.55; controls.enablePan = false;
+  let idleTimer; controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idleTimer); });
+  controls.addEventListener('end', () => { idleTimer = setTimeout(() => { if (mode === '3d') controls.autoRotate = true; }, 6000); });
+  let mode = '3d', tween = null;
+  function homePos() { const a = el.clientWidth / Math.max(el.clientHeight, 1), dist = 60 / Math.min(1.2, Math.max(0.7, a * 0.8)); return C.clone().add(new THREE.Vector3(0.35, 0.36, 0.86).normalize().multiplyScalar(dist)); }
+  function topPos() { const a = el.clientWidth / Math.max(el.clientHeight, 1); return new THREE.Vector3(C.x, 30 + 26 / Math.min(a, 1.4), C.z + 0.01); }
+  cam.position.copy(homePos());
+  function setMode(m) {
+    mode = m; controls.autoRotate = m === '3d'; controls.enableRotate = m === '3d';
+    const from = cam.position.clone(), to = m === '3d' ? homePos() : topPos(), t0 = performance.now();
+    tween = t => { const k = Math.min(1, (t - t0) / 900), e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; cam.position.lerpVectors(from, to, e); if (k >= 1) tween = null; };
+    arcGroup.visible = sunMesh.visible = m === '3d' ? true : false; if (m === '3d') updateSun(new Date());
+  }
+  function resize() { const w = el.clientWidth, h = el.clientHeight; renderer.setSize(w, h); labels.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+  new ResizeObserver(resize).observe(el); resize();
+
+  let active = true, lastSun = 0;
+  renderer.setAnimationLoop(t => {
+    if (!active) return;
+    if (t - lastSun > 30000 || !lastSun) { lastSun = t; if (mode === '3d') updateSun(new Date()); }
+    tween?.(t); controls.update(); renderer.render(scene, cam); labels.render(scene, cam);
+  });
+  updateSun(new Date());
+
+  const fmt = x => (x == null ? '–' : Math.abs(x).toFixed(2));
+  return {
+    update(s) {
+      const p = s.power_kw;
+      lblEls.pv.querySelector('b').textContent = fmt(p.pv) + ' kW';
+      lblEls.home.querySelector('b').textContent = fmt(p.home) + ' kW';
+      lblEls.grid.querySelector('b').textContent = (p.grid > 0.05 ? '↓ ' : p.grid < -0.05 ? '↑ ' : '') + fmt(p.grid) + ' kW';
+      lblEls.battery.querySelector('b').textContent = (p.battery > 0.05 ? '+' : p.battery < -0.05 ? '−' : '') + fmt(p.battery) + ' kW';
+      lblEls.ev.querySelector('b').textContent = fmt(p.ev) + ' kW';
+      lblEls.ev.classList.toggle('dim', !(p.ev > 0.05));
+    },
+    setMode, get mode() { return mode; },
+    setActive(a) { active = a; if (a) resize(); },
+    sunNow: () => sunPos(bkk(new Date()), bkk(new Date()).min),
+  };
+}
